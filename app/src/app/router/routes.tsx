@@ -11,6 +11,7 @@ import { NewReturnPage } from "../../features/returns/NewReturnPage";
 import { ReturnDetailPage } from "../../features/returns/ReturnDetailPage";
 import { OpsQueuePage } from "../../features/ops/OpsQueuePage";
 import { OpsReviewPage } from "../../features/ops/OpsReviewPage";
+import { InsightsPage } from "../../features/insights/InsightsPage";
 
 const protectedRoutes = {
   "/": ProfilePage,
@@ -18,7 +19,8 @@ const protectedRoutes = {
   "/returns": MyReturnsPage,
   "/returns/new": NewReturnPage,
   "/ops": OpsQueuePage,
-  "/ops/review": OpsReviewPage
+  "/ops/review": OpsReviewPage,
+  "/insights": InsightsPage
 };
 
 // "/returns" and "/ops/review" both resolve on pathname alone; each page
