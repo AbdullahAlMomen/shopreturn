@@ -5,11 +5,21 @@ import { EmptyState } from "../../shared/ui/EmptyState";
 import { ErrorState } from "../../shared/ui/ErrorState";
 import { PageHeader } from "../../shared/ui/PageHeader";
 import { Skeleton } from "../../shared/ui/Skeleton";
+import { TablePaginationFooter, TableSearchBox } from "../../shared/ui/TableControls";
+import { useTableControls } from "../../shared/table/useTableControls";
 import { useT } from "../../lib/i18n/LocalizationProvider";
 import type { TranslationKey } from "../../lib/i18n/dictionary";
 import { useRoles } from "../../lib/blocks/useRoles";
 import { useOpsQueue } from "./useOpsQueue";
 import type { OpsReturnRow, QueueScope } from "./useOpsQueue";
+
+// Order number, product, status, the customer's own words, and whichever of
+// confirmedReason/aiReason is set -- the same fields a reviewer scans by eye
+// to find a case, so a search box that only matched order numbers would be
+// searching less than the queue already invites people to read.
+function opsSearchFields(row: OpsReturnRow): (string | number | undefined)[] {
+  return [row.orderNumber, row.productName, row.status, row.rawCustomerText, row.confirmedReason, row.aiReason];
+}
 
 // Same pushState + synthetic popstate pattern as NewReturnPage's
 // goToReturn() -- the hand-rolled router only matches pathname, so this
@@ -46,6 +56,10 @@ export function OpsQueuePage() {
   const { hasRole, isLoading: rolesLoading, roles } = useRoles();
   const [scope, setScope] = useState<QueueScope>("open");
   const { returns, loading, error, refetch } = useOpsQueue(scope);
+  // Called unconditionally, ahead of the roles/loading early returns below,
+  // per the rules of hooks -- harmless when those returns fire, since its
+  // output just goes unused.
+  const controls = useTableControls(returns, opsSearchFields);
 
   // UX-only guard, same shape as NewReturnPage's customer-only gate: the
   // sidebar already hides this route for non-ops (see navItems.ts), but
@@ -118,54 +132,60 @@ export function OpsQueuePage() {
           description={t("ops.empty.description")}
         />
       ) : (
-        <div className="ops-queue">
-          <div className="ops-queue-head">
-            <span>{t("returns.columns.order")}</span>
-            <span>{t("returns.columns.product")}</span>
-            <span>{t("ops.columns.customerSaid")}</span>
-            <span>{t("ops.columns.aiProposal")}</span>
-            <span>{t("returns.columns.status")}</span>
-            <span>{t("returns.columns.age")}</span>
-            <span>{t("ops.columns.review")}</span>
-          </div>
-          {returns.map((row) => {
-            const pending = isAwaitingReview(row);
-            return (
-              <div
-                key={row.ItemId}
-                className={`ops-queue-row${pending ? " ops-queue-row-pending" : ""}`}
-                role="button"
-                tabIndex={0}
-                onClick={() => goToReview(row.ItemId)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    goToReview(row.ItemId);
-                  }
-                }}
-              >
-                <span className="ops-queue-order">{row.orderNumber || t("returns.unknownOrder")}</span>
-                <span className="ops-queue-product">{row.productName || t("returns.unknownProduct")}</span>
-                <span className="ops-queue-quote" title={row.rawCustomerText}>{row.rawCustomerText || "—"}</span>
-                {row.aiReason ? (
-                  <span className="ops-queue-ai">
-                    <span className="ops-queue-ai-reason">{row.aiReason}</span>
-                    <span className="ops-queue-ai-confidence">
-                      {typeof row.aiConfidence === "number" ? `${Math.round(row.aiConfidence * 100)}%` : "—"}
+        <>
+          <TableSearchBox controls={controls} placeholder={t("table.searchPlaceholder")} />
+          <div className="ops-queue">
+            <div className="ops-queue-head">
+              <span>{t("returns.columns.order")}</span>
+              <span>{t("returns.columns.product")}</span>
+              <span>{t("ops.columns.customerSaid")}</span>
+              <span>{t("ops.columns.aiProposal")}</span>
+              <span>{t("returns.columns.status")}</span>
+              <span>{t("returns.columns.age")}</span>
+              <span>{t("ops.columns.review")}</span>
+            </div>
+            {controls.filteredCount === 0 ? (
+              <div className="ops-queue-no-matches">{t("table.noMatches")}</div>
+            ) : controls.visibleRows.map((row) => {
+              const pending = isAwaitingReview(row);
+              return (
+                <div
+                  key={row.ItemId}
+                  className={`ops-queue-row${pending ? " ops-queue-row-pending" : ""}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => goToReview(row.ItemId)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      goToReview(row.ItemId);
+                    }
+                  }}
+                >
+                  <span className="ops-queue-order">{row.orderNumber || t("returns.unknownOrder")}</span>
+                  <span className="ops-queue-product">{row.productName || t("returns.unknownProduct")}</span>
+                  <span className="ops-queue-quote" title={row.rawCustomerText}>{row.rawCustomerText || "—"}</span>
+                  {row.aiReason ? (
+                    <span className="ops-queue-ai">
+                      <span className="ops-queue-ai-reason">{row.aiReason}</span>
+                      <span className="ops-queue-ai-confidence">
+                        {typeof row.aiConfidence === "number" ? `${Math.round(row.aiConfidence * 100)}%` : "—"}
+                      </span>
                     </span>
+                  ) : (
+                    <span className="ops-queue-ai-empty">{t("ops.ai.none")}</span>
+                  )}
+                  <span className="ops-queue-status">{row.status || t("returns.status.unknown")}</span>
+                  <span className="ops-queue-age">{formatAge(row, t)}</span>
+                  <span className={`ops-queue-review ${pending ? "ops-queue-review-pending" : "ops-queue-review-done"}`}>
+                    {pending ? t("ops.review.pending") : t("ops.review.done")}
                   </span>
-                ) : (
-                  <span className="ops-queue-ai-empty">{t("ops.ai.none")}</span>
-                )}
-                <span className="ops-queue-status">{row.status || t("returns.status.unknown")}</span>
-                <span className="ops-queue-age">{formatAge(row, t)}</span>
-                <span className={`ops-queue-review ${pending ? "ops-queue-review-pending" : "ops-queue-review-done"}`}>
-                  {pending ? t("ops.review.pending") : t("ops.review.done")}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+                </div>
+              );
+            })}
+          </div>
+          <TablePaginationFooter controls={controls} />
+        </>
       )}
     </section>
   );
