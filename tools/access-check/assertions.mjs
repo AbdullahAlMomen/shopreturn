@@ -31,6 +31,15 @@
 // DELETE one?" a reachable question, and append-only is the spec's core trust
 // guarantee. It runs last because a regression there destroys a fixture.
 //
+// Assertions 10-11 were appended once `Order` rows became owned and
+// `ReturnCase.orderNumber` became unique. Assertion 10 is the read-side
+// twin of assertion 1, but for `Order`: customer A has three orders and
+// customer B has one, so a leak is directly observable, not vacuous.
+// Assertion 11 is the write-side guarantee that an order can only ever
+// carry one return -- it must detect the rejection correctly, because the
+// server returns HTTP 200 with a GraphQL `errors` array and
+// `data.insertReturnCase: null` rather than throwing.
+//
 // "Denied" has two shapes and both count as a pass here:
 //   - a thrown error (schema-level denial, typically a non-2xx response or
 //     a GraphQL `errors` entry) -- printed as `denied(threw: <message>)`
@@ -480,9 +489,94 @@ async function main() {
     }
   }
 
+  // 10. Customer B cannot see customer A's orders. `Order` reads are now
+  // split into `customer-reads-own-orders` (role customer AND
+  // customerItemId == UserId) and `staff-reads-all-orders` (ops/manager,
+  // unscoped). Customer A has three orders (10-4821, 10-4822, 10-4823);
+  // customer B has exactly one (10-5001) -- non-vacuous because A's three
+  // demonstrably exist. This isn't a plain "denied or empty" check like 1,
+  // 4 and 5: customer B is SUPPOSED to see their own order, so the pass
+  // condition is "sees only their own", not "sees nothing".
+  {
+    const label = "customerB lists Order -- sees only their own";
+    const result = await attempt(() => blocksB.data.collection("Order").list({ fields: ["orderNumber"] }));
+    const items = result.outcome === "ok" ? itemsOf(result.response, "getOrders") : [];
+    const orderNumbers = items.map((item) => item?.orderNumber);
+    const leaked = ["10-4821", "10-4822", "10-4823"].filter((n) => orderNumbers.includes(n));
+    const onlyOwn = result.outcome === "ok" && orderNumbers.length === 1 && orderNumbers[0] === "10-5001";
+
+    if (onlyOwn) {
+      record(10, label, true, `allowed -- customerB saw exactly [${orderNumbers.join(", ")}]`);
+    } else if (result.outcome !== "ok") {
+      record(
+        10,
+        label,
+        false,
+        `call failed(${result.outcome}: ${result.message}) -- expected customerB to see their own order 10-5001`
+      );
+    } else {
+      record(
+        10,
+        label,
+        false,
+        `customerB saw [${orderNumbers.join(", ")}]${
+          leaked.length ? `; LEAKED customerA orders: [${leaked.join(", ")}]` : " -- missing their own order 10-5001"
+        }`
+      );
+    }
+  }
+
+  // 11. One return per order is enforced. Customer A's seeded ReturnCase
+  // already covers order 10-4821; this attempts a second insert on the same
+  // order and must be rejected. `ReturnCase.orderNumber` is now
+  // `isUniqueData: true` and enforced server-side, but critically the
+  // rejection does NOT throw and is NOT a non-2xx response -- it comes back
+  // HTTP 200 with a GraphQL `errors` array (VALIDATION_ERROR /
+  // validationType: Unique) and `data.insertReturnCase: null`. `attempt()`
+  // already classifies a non-empty `errors` array as `graphql-error`
+  // (denied), so that is the expected path here; the `data.insertReturnCase
+  // === null` check in the `ok` branch below is a second, independent
+  // signal so this assertion doesn't depend solely on the errors array
+  // being present.
+  {
+    const label = "customerA cannot create a second ReturnCase on order 10-4821 (uniqueness)";
+    const result = await attempt(() =>
+      blocksA.data.collection("ReturnCase").create({
+        customerItemId: customerAItemId,
+        orderNumber: "10-4821",
+        sku: "SH-022",
+        status: "SUBMITTED",
+        rawCustomerText: "assertion 11 probe -- duplicate return attempt on an order that already has one"
+      })
+    );
+
+    if (result.outcome === "threw" || result.outcome === "graphql-error") {
+      record(11, label, true, `denied(threw: ${result.message})`);
+    } else {
+      const payload = result.response?.data?.insertReturnCase;
+      if (payload === null || payload === undefined || !payload.itemId || payload.acknowledged === false) {
+        record(11, label, true, `denied(empty) -- data.insertReturnCase=${JSON.stringify(payload)}`);
+      } else {
+        // The insert actually went through -- a second ReturnCase now
+        // exists on an order that must only ever have one. Clean it up as
+        // ops (see deleteForgedReturnCase) so the fixture set stays sane
+        // for the next run, then report the failure with the created id.
+        const cleanup = await deleteForgedReturnCase(payload.itemId, [["ops", blocksOps]]);
+        record(
+          11,
+          label,
+          false,
+          `allowed -- second ReturnCase created on order 10-4821 (itemId=${payload.itemId}); cleanup: ${
+            cleanup.deleted ? "row removed" : "ROW STILL PRESENT -- remove it by hand"
+          } [${cleanup.notes.join(" | ")}]`
+        );
+      }
+    }
+  }
+
   const passing = results.filter(Boolean).length;
-  console.log(`${passing}/9 passing`);
-  process.exit(passing === 9 ? 0 : 1);
+  console.log(`${passing}/11 passing`);
+  process.exit(passing === 11 ? 0 : 1);
 }
 
 main().catch((error) => {
