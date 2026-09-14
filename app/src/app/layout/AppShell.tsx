@@ -6,6 +6,7 @@ import { navItems } from "./navItems";
 import { NotificationsMenu } from "./NotificationsMenu";
 import { UserMenu } from "./UserMenu";
 import { useT } from "../../lib/i18n/LocalizationProvider";
+import { useRoles } from "../../lib/blocks/useRoles";
 
 const COLLAPSED_KEY = "blocks-app:sidebar-collapsed";
 const MOBILE_QUERY = "(max-width: 880px)";
@@ -27,11 +28,16 @@ export function AppShell({ activePath, children, onNavigate }: { activePath: str
   const isMobile = useIsMobile();
   const [collapsedPref, setCollapsedPref] = useState(() => localStorage.getItem(COLLAPSED_KEY) === "true");
   const { t } = useT();
+  const { hasRole } = useRoles();
   // On narrow screens the sidebar is always the icon-only rail below --
   // no separate hamburger/drawer/scrim needed, and no dead-end state where
   // nothing on screen can bring navigation back.
   const collapsed = collapsedPref || isMobile;
-  const activeItem = navItems.find((item) => item.href === activePath);
+  // Hiding an item here is a UX courtesy only -- the server (blocks/data/rules.json)
+  // is what actually enforces who can do what; this just avoids offering a
+  // control that would come back as an opaque AUTH_NOT_AUTHENTICATED error.
+  const visibleNavItems = navItems.filter((item) => !item.requiresRole || hasRole(item.requiresRole));
+  const activeItem = visibleNavItems.find((item) => item.href === activePath);
 
   useEffect(() => {
     localStorage.setItem(COLLAPSED_KEY, String(collapsedPref));
@@ -55,7 +61,7 @@ export function AppShell({ activePath, children, onNavigate }: { activePath: str
           </button>
         </div>
         <nav>
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <a
               key={item.href}
               href={item.href}

@@ -2,6 +2,8 @@ import { ArrowLeft, Paperclip, X } from "lucide-react";
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useT } from "../../lib/i18n/LocalizationProvider";
+import { useRoles } from "../../lib/blocks/useRoles";
+import { EmptyState } from "../../shared/ui/EmptyState";
 import { useSubmitReturn } from "./useSubmitReturn";
 import type { SubmitReturnResult } from "./useSubmitReturn";
 
@@ -20,6 +22,7 @@ function goToMyReturns() {
 
 export function NewReturnPage() {
   const { t } = useT();
+  const { isCustomer, roles } = useRoles();
   const { submit, submitting, error } = useSubmitReturn();
 
   const [orderNumber, setOrderNumber] = useState("");
@@ -73,6 +76,33 @@ export function NewReturnPage() {
     if (error === "no-session") return t("returns.new.noSession");
     if (error === "create-failed") return t("returns.new.submitFailed");
     return error;
+  }
+
+  // UX-only guard: the sidebar already hides this route for non-customers
+  // (see navItems.ts), but a manager or ops user can still type the URL
+  // directly. This just avoids showing a form that the server (correctly)
+  // rejects with AUTH_NOT_AUTHENTICATED -- it enforces nothing itself, the
+  // grant matrix in blocks/data/rules.json remains the actual boundary.
+  if (!isCustomer) {
+    const roleLabel = roles.length > 0 ? roles.join(", ") : t("returns.new.restricted.genericRole");
+    return (
+      <section>
+        <a
+          className="ledger-back"
+          href="/returns"
+          onClick={(event) => {
+            event.preventDefault();
+            goToMyReturns();
+          }}
+        >
+          <ArrowLeft size={14} /> {t("returns.detail.back")}
+        </a>
+        <EmptyState
+          title={t("returns.new.restricted.title")}
+          description={t("returns.new.restricted.description").replace("{role}", roleLabel)}
+        />
+      </section>
+    );
   }
 
   return (
