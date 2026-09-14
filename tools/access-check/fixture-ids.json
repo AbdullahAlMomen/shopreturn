@@ -1,0 +1,15 @@
+{
+  "orderItemId": "d13c2f9e-4570-4e8e-b60a-08e8ee0ad97a",
+  "returnCaseItemId": "b6e4e854-2cf0-435a-a59b-f4fd4a255c85",
+  "timelineItemId": "2c4f2ffd-22ff-473e-b2a8-3aa4f0bb57bd",
+  "inspectionItemId": "ac453caa-c45a-416f-b211-1599520e5028",
+  "customerAItemId": "28412829-9537-46e0-89b0-e458d46a375d",
+  "patternAlertItemId": "ee6d9ac1-9451-4f2b-b9ea-e762fa7b3eaf",
+  "decisionItemId": "38d152c0-ca29-4d40-bc74-7cdc5bd4030f",
+  "customerBItemId": "66c47906-3c59-4d7d-8d49-2aa9afc60b4a",
+  "orders": {
+    "10-4822": "a5e3888d-3b43-4bdc-a8c7-5330208523ac",
+    "10-4823": "cf016620-9758-4388-84a3-9a32a42641d2",
+    "10-5001": "6fe681a9-3179-470c-bf59-6d90f7742e16"
+  }
+}

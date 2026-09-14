@@ -1,0 +1,16 @@
+{
+  "schemaName": "PatternAlert",
+  "collectionName": "blx_PatternAlerts",
+  "schemaType": 1,
+  "fields": [
+    { "name": "dimension", "type": "String", "description": "SKU|AREA|COURIER|REASON" },
+    { "name": "value", "type": "String", "description": "e.g. SH-022, Mirpur, Sundarban Courier" },
+    { "name": "metric", "type": "Float", "description": "Observed rate as a percentage, e.g. 38" },
+    { "name": "threshold", "type": "Float", "description": "Threshold crossed, e.g. 30" },
+    { "name": "takaImpact", "type": "Float", "description": "Money lost attributable to this pattern, BDT" },
+    { "name": "contributingReturnIds", "type": "String", "isArray": true },
+    { "name": "draftExplanation", "type": "String", "description": "Agent-drafted likely cause" },
+    { "name": "raisedAt", "type": "DateTime", "description": "Must predate the manager opening the dashboard" },
+    { "name": "acknowledgedBy", "type": "String" }
+  ]
+}

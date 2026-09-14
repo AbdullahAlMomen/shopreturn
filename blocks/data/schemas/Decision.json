@@ -1,0 +1,14 @@
+{
+  "schemaName": "Decision",
+  "collectionName": "blx_Decisions",
+  "schemaType": 1,
+  "fields": [
+    { "name": "alertId", "type": "String", "description": "PatternAlert.ItemId this decision answers" },
+    { "name": "decisionType", "type": "String", "description": "SIZE_CHART_FIX|COURIER_CLAIM|COD_PAUSE|OTHER" },
+    { "name": "target", "type": "String", "description": "What it applies to, e.g. SH-022 or Mirpur" },
+    { "name": "note", "type": "String" },
+    { "name": "decidedBy", "type": "String" },
+    { "name": "decidedAt", "type": "DateTime" },
+    { "name": "status", "type": "String", "description": "OPEN|DONE" }
+  ]
+}

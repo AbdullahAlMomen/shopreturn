@@ -1,0 +1,13 @@
+{
+  "name": "shopreturn-access-check",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "login": "node login-check.mjs",
+    "seed": "node seed.mjs",
+    "assert": "node assertions.mjs"
+  },
+  "dependencies": {
+    "@seliseblocks/client": "^0.2.0"
+  }
+}
