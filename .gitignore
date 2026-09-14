@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+
+# Local HTTPS dev certs (blocks new web)
+.cert/
+
+# Brainstorming companion session files
+.superpowers/
+
+# Vendored SELISE checkout — reference only, has its own git history
+blocks-cli/
+
+# OS noise
+Thumbs.db
+.DS_Store
