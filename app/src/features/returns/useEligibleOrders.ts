@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { blocksClient } from "../../lib/blocks/client";
+import { itemsOrThrow } from "../../lib/blocks/readItems";
 
 // Everything the dropdown needs to render a recognisable row (order number,
 // product name, price) and everything useSubmitReturn needs to carry onto
@@ -16,9 +17,6 @@ export type EligibleOrder = {
 const ORDER_FIELDS = ["orderNumber", "sku", "productName", "unitPrice", "area", "courier"];
 
 type OrderRow = Partial<EligibleOrder>;
-
-type ListOrdersResponse = { data?: { getOrders?: { items?: OrderRow[] } } };
-type ListReturnCasesResponse = { data?: { getReturnCases?: { items?: { orderNumber?: string }[] } } };
 
 // Eligible = the signed-in customer's own orders that do not already have a
 // ReturnCase. Both `Order` and `ReturnCase` lists are already scoped to the
@@ -38,15 +36,15 @@ export function useEligibleOrders() {
       const [ordersResponse, returnsResponse] = await Promise.all([
         blocksClient.data
           .collection("Order", { fields: ORDER_FIELDS })
-          .list({ pageNo: 1, pageSize: 100 }) as Promise<ListOrdersResponse>,
+          .list({ pageNo: 1, pageSize: 100 }),
         blocksClient.data
           .collection("ReturnCase", { fields: ["orderNumber"] })
-          .list({ pageNo: 1, pageSize: 100 }) as Promise<ListReturnCasesResponse>
+          .list({ pageNo: 1, pageSize: 100 })
       ]);
 
-      const allOrders = ordersResponse?.data?.getOrders?.items ?? [];
+      const allOrders = itemsOrThrow<OrderRow>(ordersResponse, "getOrders");
       const claimedOrderNumbers = new Set(
-        (returnsResponse?.data?.getReturnCases?.items ?? [])
+        itemsOrThrow<{ orderNumber?: string }>(returnsResponse, "getReturnCases")
           .map((item) => item.orderNumber)
           .filter((value): value is string => Boolean(value))
       );

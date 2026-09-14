@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { blocksClient } from "../../lib/blocks/client";
+import { itemsOrThrow } from "../../lib/blocks/readItems";
 
 export type ReturnRow = {
   ItemId: string;
@@ -35,10 +36,8 @@ export function useMyReturns() {
     try {
       const response = await blocksClient.data
         .collection("ReturnCase", { fields: FIELDS })
-        .list({ pageNo: 1, pageSize: 50 }) as {
-          data?: { getReturnCases?: { items?: ReturnRow[] } };
-        };
-      setReturns(response?.data?.getReturnCases?.items ?? []);
+        .list({ pageNo: 1, pageSize: 50 });
+      setReturns(itemsOrThrow<ReturnRow>(response, "getReturnCases"));
     } catch (caught) {
       setError((caught as Error).message);
     } finally {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { blocksClient } from "../../lib/blocks/client";
+import { itemsOrThrow } from "../../lib/blocks/readItems";
 
 // Confirmed live (as customer A, against the seeded fixture return) before
 // writing this hook -- see task-2-report.md for the raw probe output:
@@ -91,24 +92,23 @@ export function useReturnDetail(itemId?: string) {
       const [caseResponse, timelineResponse, refundResponse] = await Promise.all([
         blocksClient.data
           .collection("ReturnCase", { fields: RETURN_CASE_FIELDS })
-          .get(itemId) as Promise<{ data?: { getReturnCases?: { items?: ReturnCaseDetail[] } } }>,
+          .get(itemId),
         blocksClient.data
           .collection("ReturnTimeline", { fields: TIMELINE_FIELDS })
-          .list({ filter: { returnId: itemId }, sort: { at: 1 }, pageNo: 1, pageSize: 100 }) as Promise<{
-            data?: { getReturnTimelines?: { items?: TimelineEntry[] } };
-          }>,
+          .list({ filter: { returnId: itemId }, sort: { at: 1 }, pageNo: 1, pageSize: 100 }),
         blocksClient.data
           .collection("Refund", { fields: REFUND_FIELDS })
-          .list({ filter: { returnId: itemId }, pageNo: 1, pageSize: 5 }) as Promise<{
-            data?: { getRefunds?: { items?: RefundRow[] } };
-          }>
+          .list({ filter: { returnId: itemId }, pageNo: 1, pageSize: 5 })
       ]);
 
-      // get() returns a list envelope with one item, not a bare object.
-      setReturnCase(caseResponse?.data?.getReturnCases?.items?.[0]);
-      setTimeline(timelineResponse?.data?.getReturnTimelines?.items ?? []);
-      // A return that hasn't been refunded yet simply has no Refund row.
-      setRefund(refundResponse?.data?.getRefunds?.items?.[0]);
+      // get() returns a list envelope with one item, not a bare object. An
+      // empty list here legitimately means "no such return" (bad itemId) --
+      // only a failed/renamed read should throw, not a zero-row result.
+      setReturnCase(itemsOrThrow<ReturnCaseDetail>(caseResponse, "getReturnCases")[0]);
+      setTimeline(itemsOrThrow<TimelineEntry>(timelineResponse, "getReturnTimelines"));
+      // A return that hasn't been refunded yet simply has no Refund row --
+      // an empty list here is expected and must stay empty, not "not found".
+      setRefund(itemsOrThrow<RefundRow>(refundResponse, "getRefunds")[0]);
     } catch (caught) {
       setError((caught as Error).message);
     } finally {
