@@ -6,10 +6,35 @@ Changed: 2026-09-14
 ## The customer journey, definitively resolved
 
 Enable signup settings (admin, one-time) → stranger calls `auth.signup()`
-(identity only, no usable password yet) → IAM mails an activation link into
-the **app's own domain** → the app's `/activate` page must **collect a
-password from the visitor** and submit it together with the code → account
-becomes active **and** gets a working password → `auth.login()` works.
+(identity only, no usable password yet) → IAM mails an activation link → the
+activation page **collects a password from the visitor** and submits it
+together with the code → account becomes active **and** gets a working
+password → `auth.login()` works.
+
+### Where the activation page lives depends on `isOidcEnabled` — read this first
+
+This changed mid-project and the distinction is easy to get wrong.
+
+| `isOidcEnabled` | `accountActionBaseUrl` | `accountActivationPath` | Activation link | Who hosts the page |
+|---|---|---|---|---|
+| `false` | `https://dbzjdy.slsblx.com` | `activate` | `https://dbzjdy.slsblx.com/activate?code=…&lang=…` | **your app** — you must build the route |
+| `true` (current) | `https://iam.seliseblocks.com` | `oidc/activate/` | `https://iam.seliseblocks.com/oidc/activate/?code=…` | **the IdP** — nothing to build |
+
+**The project is currently `isOidcEnabled: true`**, set as a side effect of
+`blocks new web`, which rewrites all three fields above. So activation is
+IdP-hosted and **the app needs no `/activate` route.** Confirmed by a human
+completing activation through `https://iam.seliseblocks.com/oidc/activate/?code=…`
+and logging in afterwards.
+
+Turning OIDC back off would move activation to the app domain and make that
+route mandatory again — every self-registered customer would otherwise land on
+a 404 holding an account they can never use.
+
+The strongest evidence for password-at-activation is
+`shopreturn-selfreg-probe1@yopmail.com`: it was created by a *probe* signup
+with a deliberately invalid password, and still ended up with a working login
+purely through the activation flow. The password is established at activation.
+It is never established at signup.
 
 This was proven end to end with a second throwaway account
 (`shopreturn-selfreg2@yopmail.com`) after the first account
