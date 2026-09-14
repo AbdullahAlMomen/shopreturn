@@ -298,6 +298,7 @@ tbody tr:last-child td { border-bottom: 0; }
 }
 .ops-queue-review-pending { background: var(--warn-soft); color: var(--warn); }
 .ops-queue-review-done { background: var(--surface-2); color: var(--text-faint); }
+.ops-queue-no-matches { color: var(--text-muted); padding: 24px 16px; text-align: center; }
 
 /* ---- Manager analytics (relocated from ledger.css) -------------------
    Colours for the facet bars (.facet-bar / .facet-bar-breach /

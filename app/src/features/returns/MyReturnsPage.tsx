@@ -100,7 +100,12 @@ export function MyReturnsPage() {
           description={t("returns.empty.description")}
         />
       ) : (
-        <DataTable columns={columns} rows={returns} />
+        <DataTable
+          columns={columns}
+          rows={returns}
+          searchFields={(row) => [row.orderNumber, row.productName, row.status]}
+          pageSize={10}
+        />
       )}
     </section>
   );
