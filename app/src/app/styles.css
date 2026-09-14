@@ -20,12 +20,19 @@
   --border: #E3E7EE;
   --border-strong: #CBD2DD;
   --text: #0F172A;
-  --text-muted: #64748B;
-  --text-faint: #94A3B8;
+  /* Both re-darkened from the originally-shipped step-1 values (#64748B /
+     #94A3B8), which fell short of WCAG AA (4.5:1) for the 11-12.5px text
+     they're used at -- see the step-2 review report for the computed
+     ratios against both --surface and --app-bg. */
+  --text-muted: #4E5A6B;
+  --text-faint: #5F6B7C;
   --brand: #1E4FA3;
   --brand-ink: #16407F;
   --brand-soft: #EAF0FB;
-  --good: #15803D;
+  /* Darkened from #15803D: that value was only 4.47:1 on --good-soft (just
+     under the 4.5:1 small-text minimum) when used for pill/status text --
+     see the step-2 review report. */
+  --good: #147A3A;
   --good-soft: #E8F5EC;
   --warn: #B23A18;
   --warn-soft: #FBEDE8;
@@ -33,6 +40,9 @@
   --radius-sm: 6px;
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, .06);
   --shadow: 0 2px 8px rgba(15, 23, 42, .08);
+  /* Modals want more lift than the ambient card shadow above -- a named
+     token instead of a one-off literal on .modal. */
+  --shadow-lg: 0 20px 50px rgba(15, 23, 42, 0.2);
 
   /* Avatar chip colours -- neutral, not one of the semantic tones above. */
   --avatar-surface: #C0C9D1;
@@ -50,7 +60,13 @@ button { cursor: pointer; font: inherit; }
    index.html alongside the Bengali faces. */
 :root { background: var(--app-bg); color: var(--text); font-family: Inter, "Noto Sans Bengali", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 h1, h2, h3 { letter-spacing: -0.01em; }
-:focus-visible { border-radius: 4px; outline: 2px solid var(--brand); outline-offset: 2px; }
+/* Shared focus treatment for every interactive element in the app (F1):
+   :focus-visible so a mouse click never leaves a ring but keyboard focus
+   always does. Elements with a solid --brand/--warn background override
+   just the outline colour below, since a brand-blue ring is invisible on
+   a brand-blue button. */
+:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: var(--radius-sm); }
+.primary-button:focus-visible, .danger:focus-visible { outline-color: #fff; }
 
 /* Thin scrollbars for the sidebar nav and main content */
 nav, main { scrollbar-color: var(--border) transparent; scrollbar-width: thin; }
@@ -65,7 +81,10 @@ aside.collapsed { flex-basis: 56px; width: 56px; }
 .sidebar-header .brand { align-items: center; display: flex; font-weight: 700; gap: 8px; overflow: hidden; }
 .brand-mark { align-items: center; background: var(--brand-soft); border-radius: var(--radius-sm); display: grid; flex-shrink: 0; height: 30px; place-items: center; width: 30px; }
 .brand-mark img { display: block; height: 20px; width: 20px; }
-aside.collapsed .sidebar-header { justify-content: center; padding: 0; }
+/* Collapsed rail now shows both the brand mark and the collapse toggle
+   (F3) -- side by side they'd overflow the 56px rail, so the header
+   stacks them instead of centering one item in a fixed-height row. */
+aside.collapsed .sidebar-header { flex-direction: column; gap: 8px; height: auto; justify-content: center; padding: 10px 0; }
 
 nav { display: grid; gap: 2px; overflow-x: hidden; overflow-y: auto; padding: 8px; }
 nav a { align-items: center; border-radius: var(--radius); color: var(--text-muted); display: flex; gap: 12px; height: 40px; padding: 0 12px; position: relative; transition: background-color 0.15s ease, color 0.15s ease; }
@@ -174,7 +193,7 @@ pre { background: var(--text); border-radius: var(--radius); color: var(--surfac
 .toolbar-actions { align-items: center; display: flex; gap: 8px; }
 .search-box { align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); display: flex; gap: 8px; max-width: 360px; padding: 0 12px; transition: border-color 0.15s ease; width: 100%; }
 .search-box:has(input:focus) { border-color: var(--brand); }
-.search-box input, .form-field input, .form-field select { background: transparent; border: 0; color: var(--text); font: inherit; height: 40px; outline: none; width: 100%; }
+.search-box input, .form-field input, .form-field select { background: transparent; border: 0; color: var(--text); font: inherit; height: 40px; width: 100%; }
 .form-grid { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .filter-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-bottom: 12px; }
 .form-field { display: grid; gap: 6px; }
@@ -203,7 +222,7 @@ tbody tr:last-child td { border-bottom: 0; }
 .link-button { background: transparent; border: 0; color: var(--brand); font-weight: 700; padding: 0; }
 .link-button:hover { color: var(--brand-ink); text-decoration: underline; }
 .modal-backdrop { align-items: center; background: rgba(15, 23, 42, 0.35); bottom: 0; display: flex; justify-content: center; left: 0; padding: 24px; position: fixed; right: 0; top: 0; z-index: 80; }
-.modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2); display: grid; gap: 14px; max-width: 520px; padding: 20px; width: 100%; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg); display: grid; gap: 14px; max-width: 520px; padding: 20px; width: 100%; }
 .modal-header { align-items: center; display: flex; justify-content: space-between; }
 .modal h3, .modal p { margin: 0; }
 .modal p { color: var(--text-muted); }
@@ -291,6 +310,13 @@ tbody tr:last-child td { border-bottom: 0; }
 .insights-answer-lead { color: var(--text-muted); font-size: 15px; margin: 0 0 8px; }
 .insights-answer-worst { font-size: clamp(18px, 2.2vw, 22px); font-weight: 600; line-height: 1.45; margin: 0; max-width: 62ch; }
 .insights-facets { display: grid; gap: 32px 44px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+/* .facet / .facet-row / .facet-rate have no consumer-facing visual role of
+   their own -- FacetBars.tsx renders fine today purely on inherited
+   defaults (block section, block list item, inherited muted colour). Rules
+   below make that explicit so the layout no longer depends on inheritance. */
+.facet { color: var(--text); }
+.facet-row { display: block; }
+.facet-rate { color: var(--text-faint); font-variant-numeric: tabular-nums; }
 .facet-title {
   border-bottom: 1px solid var(--border); color: var(--text-muted);
   font-size: 11px; font-weight: 700; letter-spacing: 0.06em; margin: 0 0 12px; padding-bottom: 8px; text-transform: uppercase;
@@ -325,7 +351,7 @@ tbody tr:last-child td { border-bottom: 0; }
   color: var(--text); font: inherit; font-size: 14px; min-width: 0; padding: 8px 10px;
   transition: border-color 0.15s ease;
 }
-.decision-form select:focus, .decision-form input:focus, .decision-form textarea:focus { border-color: var(--brand); outline: none; }
+.decision-form select:focus, .decision-form input:focus, .decision-form textarea:focus { border-color: var(--brand); }
 .decision-form-wide { grid-column: 1 / -1; }
 .decision-rows { display: grid; }
 .decision-row { align-items: center; border-bottom: 1px solid var(--border); display: grid; gap: 4px 16px; grid-template-columns: minmax(0, 1fr) auto; padding: 12px 0; }
@@ -334,6 +360,98 @@ tbody tr:last-child td { border-bottom: 0; }
 .decision-status-DONE { color: var(--good); }
 .decision-note { font-size: 14px; grid-column: 1 / -1; line-height: 1.5; margin: 0; }
 .decision-meta { color: var(--text-faint); font-size: 11px; }
+
+/* ---- Ops case screen + new-return form (converted from ledger.css's
+   editorial treatment: these are working surfaces like the rest of the
+   app, not the customer's read-only trust artifact, so step 2 moves them
+   onto the same professional system everything else uses.) ------------ */
+.case-back { align-items: center; color: var(--text-muted); display: inline-flex; font-size: 13px; font-weight: 600; gap: 6px; margin-bottom: 16px; transition: color 0.15s ease; }
+.case-back:hover { color: var(--text); }
+.case-page { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); padding: 28px; }
+.case-header { align-items: baseline; border-bottom: 1px solid var(--border); display: flex; gap: 16px; justify-content: space-between; padding-bottom: 16px; }
+.case-title { font-size: 22px; font-weight: 700; margin: 0; overflow-wrap: anywhere; }
+.case-subtitle { color: var(--text-muted); font-size: 14px; margin: 6px 0 0; }
+.case-quote { background: var(--surface-2); border-left: 2px solid var(--brand); border-radius: var(--radius-sm); color: var(--text); font-size: 14px; font-style: italic; line-height: 1.6; margin: 20px 0 0; padding: 14px 18px; }
+.case-label { color: var(--text-muted); font-size: 11px; font-weight: 700; letter-spacing: 0.08em; margin: 24px 0 8px; text-transform: uppercase; }
+.case-section { margin-top: 24px; }
+.case-section-title { font-size: 16px; font-weight: 700; margin: 0 0 4px; }
+.case-rows { display: grid; }
+.case-row { border-top: 1px solid var(--border); display: grid; gap: 4px 16px; grid-template-columns: 96px 1fr; padding: 12px 0; }
+.case-row:first-child { border-top: 0; }
+.case-when { color: var(--text-muted); font-size: 12px; white-space: nowrap; }
+.case-message p { color: var(--text); font-size: 13.5px; line-height: 1.55; margin: 0; }
+.case-terminal-summary p:not(.case-label) { color: var(--text); font-size: 14px; line-height: 1.6; margin: 4px 0 0; }
+
+/* A single-column stacked form -- used by the ops case actions and the
+   new-return submission form, both formerly .ledger-form. */
+.stack-form { display: grid; gap: 18px; }
+.field { display: grid; gap: 6px; }
+.field-label { color: var(--text-muted); font-size: 13px; font-weight: 600; }
+.field input, .field select, .field textarea {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text); font: inherit; font-size: 14px; padding: 9px 10px; transition: border-color 0.15s ease; width: 100%;
+}
+.field textarea { line-height: 1.55; min-height: 90px; resize: vertical; }
+.field select { cursor: pointer; }
+.field select:disabled, .field input:disabled, .field textarea:disabled { cursor: not-allowed; opacity: 0.6; }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--brand); }
+.field-hint { color: var(--text-faint); font-size: 12.5px; }
+.form-error { color: var(--warn); font-size: 13.5px; line-height: 1.5; margin: 0; }
+
+.secondary-button {
+  align-items: center; background: transparent; border: 1px solid var(--border-strong); border-radius: var(--radius);
+  color: var(--text); display: inline-flex; font-weight: 600; gap: 8px; min-height: 40px; padding: 0 13px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.secondary-button:hover:not(:disabled) { background: var(--surface-2); border-color: var(--text-muted); }
+.secondary-button:disabled { cursor: not-allowed; opacity: 0.6; }
+
+.photo-input-label {
+  align-items: center; border: 1px dashed var(--border-strong); border-radius: var(--radius-sm); color: var(--text-muted);
+  cursor: pointer; display: inline-flex; font-size: 12.5px; font-weight: 600; gap: 8px; letter-spacing: 0.02em;
+  padding: 9px 14px; transition: border-color 0.15s ease, color 0.15s ease; width: fit-content;
+}
+.photo-input-label:hover { border-color: var(--brand); color: var(--text); }
+.photo-input-label input { display: none; }
+.photo-list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.photo-chip {
+  align-items: center; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text-muted); display: inline-flex; font-size: 12px; gap: 6px; padding: 5px 6px 5px 10px;
+}
+.photo-chip button { background: transparent; border: 0; color: var(--text-muted); display: inline-flex; padding: 2px; }
+.photo-chip button:hover { color: var(--warn); }
+.photo-failures { color: var(--text-muted); display: grid; font-size: 12px; gap: 4px; list-style: none; margin: 0; padding: 0; }
+
+.result-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); display: grid; gap: 14px; margin-top: 20px; padding: 20px; }
+.result-panel h2 { font-size: 18px; font-weight: 700; margin: 0; }
+
+/* The review screen's "editable sentence" -- a deliberate spec choice over
+   a labelled form: dropdowns sit inline in a sentence, underlined rather
+   than boxed, so "ops confirm or correct before it counts" reads in one
+   glance. Same shape as the original editorial version, restyled onto
+   Inter/slate instead of Georgia/warm-paper. */
+.review-sentence { color: var(--text); font-size: 16px; line-height: 2; margin: 20px 0 0; }
+.review-select-wrap { display: inline-flex; position: relative; vertical-align: baseline; }
+.review-select-wrap::after {
+  color: var(--text-muted); content: "\25be"; font-size: 10px; pointer-events: none;
+  position: absolute; right: 2px; top: 55%; transform: translateY(-50%);
+}
+.review-inline-select {
+  appearance: none; -webkit-appearance: none; background: transparent; border: 0; border-bottom: 1px solid var(--border-strong);
+  color: var(--text); cursor: pointer; font: inherit; font-weight: 600; padding: 0 16px 2px 2px; transition: border-color 0.15s ease;
+}
+.review-inline-select:hover { border-bottom-color: var(--text-muted); }
+.review-inline-select:focus { border-bottom-color: var(--brand); border-bottom-width: 2px; }
+.review-inline-select:disabled { color: var(--text-muted); cursor: not-allowed; }
+.review-confidence { color: var(--text-faint); font-size: 12px; letter-spacing: 0.03em; margin: 6px 0 0; }
+.review-confidence-raw { color: var(--text-faint); }
+
+@media (max-width: 480px) {
+  .case-page { padding: 20px 16px; }
+  .case-header { align-items: flex-start; flex-direction: column; gap: 6px; }
+  .case-row { column-gap: 10px; grid-template-columns: 72px 1fr; }
+  .review-sentence { font-size: 14.5px; line-height: 2.1; }
+}
 
 @media (max-width: 880px) {
   /* The sidebar is forced into its collapsed icon rail on mobile (see
