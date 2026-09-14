@@ -296,3 +296,23 @@
   font-size: 12px; letter-spacing: 0.04em; padding: 6px 10px;
 }
 .ops-scope-option-active { border-color: var(--ledger-ink); color: var(--ledger-ink); font-weight: 600; }
+
+/* ---- Manager insights ------------------------------------------------ */
+.insights-page { --insights-bar: #2563A8; --insights-breach: var(--ledger-warn); color: var(--ledger-ink); }
+.insights-answer { border-left: 2px solid var(--ledger-ink); margin: 8px 0 36px; padding: 4px 0 4px 18px; }
+.insights-answer-lead { color: var(--ledger-muted); font-family: var(--ledger-serif); font-size: 15px; margin: 0 0 8px; }
+.insights-answer-worst { font-family: var(--ledger-serif); font-size: clamp(18px, 2.2vw, 22px); line-height: 1.45; margin: 0; max-width: 62ch; }
+.insights-facets { display: grid; gap: 32px 44px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
+.facet-title {
+  border-bottom: 1px solid var(--ledger-rule); color: var(--ledger-muted); font-family: var(--ledger-mono);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.08em; margin: 0 0 12px; padding-bottom: 8px; text-transform: uppercase;
+}
+.facet-list { display: grid; gap: 14px; list-style: none; margin: 0; padding: 0; }
+.facet-row-head, .facet-row-foot { align-items: baseline; display: flex; gap: 12px; justify-content: space-between; }
+.facet-label { font-family: var(--ledger-serif); font-size: 14.5px; overflow-wrap: anywhere; }
+.facet-value { font-family: var(--ledger-mono); font-size: 13px; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
+.facet-track { background: var(--ledger-band); border-radius: 2px; height: 6px; margin: 6px 0 4px; overflow: hidden; }
+.facet-bar { background: var(--insights-bar); border-radius: 2px; height: 100%; }
+.facet-bar-breach { background: var(--insights-breach); }
+.facet-row-foot { color: var(--ledger-faint); flex-wrap: wrap; font-family: var(--ledger-mono); font-size: 11.5px; font-variant-numeric: tabular-nums; }
+.facet-rate-breach { color: var(--insights-breach); font-weight: 600; }
