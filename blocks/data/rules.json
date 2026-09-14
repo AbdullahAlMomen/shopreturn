@@ -212,43 +212,6 @@
   ],
   "policies": [
     {
-      "schemaName": "Order",
-      "policyName": "all-roles-read-orders",
-      "policyDescription": "Order is seeded reference data backing lookupOrder. All three application roles may read it; write/edit/delete carry no policy, so nobody may change it through the gateway.",
-      "policyType": 0,
-      "operation": 0,
-      "isAllowPolicy": true,
-      "priority": 20,
-      "fieldNames": [],
-      "ruleGroup": {
-        "logicalOperator": 1,
-        "nestedGroups": [],
-        "rules": [
-          {
-            "leftSource": 0,
-            "leftOperand": "roles",
-            "operator": 0,
-            "rightSource": 2,
-            "staticValue": "customer"
-          },
-          {
-            "leftSource": 0,
-            "leftOperand": "roles",
-            "operator": 0,
-            "rightSource": 2,
-            "staticValue": "ops"
-          },
-          {
-            "leftSource": 0,
-            "leftOperand": "roles",
-            "operator": 0,
-            "rightSource": 2,
-            "staticValue": "manager"
-          }
-        ]
-      }
-    },
-    {
       "schemaName": "ReturnCase",
       "policyName": "customer-reads-own-returns",
       "policyDescription": "A customer may read only the ReturnCase rows they themselves created: role 'customer' AND CreatedBy equal to the caller's UserId claim. Keyed on CreatedBy, NOT customerItemId, because customerItemId is client-supplied and forgeable on insert (row-field rules are not evaluated on insert -- see ACCESS-NOTES.md section 11), while CreatedBy is stamped by the server from the auth context and is not even a field on ReturnCaseInsertInput. A forged row therefore carries the forger's id and is invisible to the customer it names. NOTE the consequence: a ReturnCase created by ops on a customer's behalf is NOT visible to that customer.",
@@ -890,6 +853,112 @@
             "operator": 0,
             "rightSource": 2,
             "staticValue": "manager"
+          }
+        ]
+      }
+    },
+    {
+      "schemaName": "Order",
+      "policyName": "customer-reads-own-orders",
+      "policyDescription": "A customer may read only orders whose customerItemId is their own user id.",
+      "policyType": 0,
+      "operation": 0,
+      "isAllowPolicy": true,
+      "priority": 10,
+      "fieldNames": [],
+      "ruleGroup": {
+        "logicalOperator": 0,
+        "nestedGroups": [],
+        "rules": [
+          {
+            "leftSource": 0,
+            "leftOperand": "roles",
+            "operator": 0,
+            "rightSource": 2,
+            "staticValue": "customer"
+          },
+          {
+            "leftSource": 1,
+            "leftOperand": "customerItemId",
+            "operator": 0,
+            "rightSource": 0,
+            "rightOperand": "UserId"
+          }
+        ]
+      }
+    },
+    {
+      "schemaName": "Order",
+      "policyName": "staff-reads-all-orders",
+      "policyDescription": "Ops and manager may read every order; they are internal parties.",
+      "policyType": 0,
+      "operation": 0,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": {
+        "logicalOperator": 1,
+        "nestedGroups": [],
+        "rules": [
+          {
+            "leftSource": 0,
+            "leftOperand": "roles",
+            "operator": 0,
+            "rightSource": 2,
+            "staticValue": "ops"
+          },
+          {
+            "leftSource": 0,
+            "leftOperand": "roles",
+            "operator": 0,
+            "rightSource": 2,
+            "staticValue": "manager"
+          }
+        ]
+      }
+    },
+    {
+      "schemaName": "Order",
+      "policyName": "ops-creates-orders",
+      "policyDescription": "Ops may create orders; stands in for the sellers order system integration.",
+      "policyType": 0,
+      "operation": 1,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": {
+        "logicalOperator": 0,
+        "nestedGroups": [],
+        "rules": [
+          {
+            "leftSource": 0,
+            "leftOperand": "roles",
+            "operator": 0,
+            "rightSource": 2,
+            "staticValue": "ops"
+          }
+        ]
+      }
+    },
+    {
+      "schemaName": "Order",
+      "policyName": "ops-edits-orders",
+      "policyDescription": "Ops may edit orders; needed to backfill ownership onto existing rows.",
+      "policyType": 0,
+      "operation": 2,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": {
+        "logicalOperator": 0,
+        "nestedGroups": [],
+        "rules": [
+          {
+            "leftSource": 0,
+            "leftOperand": "roles",
+            "operator": 0,
+            "rightSource": 2,
+            "staticValue": "ops"
           }
         ]
       }
