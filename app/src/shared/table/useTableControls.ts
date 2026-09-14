@@ -33,15 +33,19 @@ export type DerivedTableState<T> = {
 };
 
 // Case-insensitive substring match against the concatenated field values.
-// `undefined` fields are skipped rather than coerced to "undefined"; numbers
-// are matched via their string form so a SKU or a taka amount is searchable
-// the same way an order number is. An empty or whitespace-only query is
-// "show everything", not "match nothing".
+// `undefined` and `null` fields are skipped rather than coerced to the
+// strings "undefined"/"null" -- some rows carry a real `null` even though
+// the TS type only declares `undefined` (e.g. OpsReturnRow.confirmedReason,
+// which useOpsQueue's own isAwaitingReview checks against `null`), so
+// skipping only `undefined` would make the literal text "null" match every
+// un-reviewed row. Numbers are matched via their string form so a SKU or a
+// taka amount is searchable the same way an order number is. An empty or
+// whitespace-only query is "show everything", not "match nothing".
 export function filterRows<T>(rows: T[], query: string, fields: (row: T) => (string | number | undefined)[]): T[] {
   const needle = query.trim().toLowerCase();
   if (!needle) return rows;
   return rows.filter((row) =>
-    fields(row).some((value) => value !== undefined && String(value).toLowerCase().includes(needle))
+    fields(row).some((value) => value !== undefined && value !== null && String(value).toLowerCase().includes(needle))
   );
 }
 
@@ -78,40 +82,58 @@ export function deriveTableState<T>(
   return { page: clampedPage, visibleRows, filteredCount, totalCount, pageCount, rangeStart, rangeEnd };
 }
 
+export type TableState = { query: string; page: number; pageSize: number };
+
+// The page-reset rule, isolated as a pure function so it's unit-testable
+// without rendering the hook (no @testing-library/react in this project --
+// see the header comment). This is a distinct rule from deriveTableState's
+// clamp: changing the query or the page size always snaps back to page 1,
+// even in cases where the clamp alone would have left the current page
+// in-range (e.g. narrowing from page 3 of a 5-page set to a same-or-larger
+// page count). Setting a query/pageSize to the value it already has must
+// NOT reset the page -- a re-render or an identical keystroke shouldn't yank
+// the user back to page 1. Changing the page alone leaves query/pageSize
+// untouched.
+export function nextTableState(state: TableState, change: Partial<TableState>): TableState {
+  const next = { ...state, ...change };
+  if (change.query !== undefined && change.query !== state.query) next.page = 1;
+  if (change.pageSize !== undefined && change.pageSize !== state.pageSize) next.page = 1;
+  return next;
+}
+
 export function useTableControls<T>(
   rows: T[],
   fields: (row: T) => (string | number | undefined)[],
   initialPageSize?: number
 ): TableControls<T> {
-  const [query, setQueryRaw] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSizeRaw] = useState(initialPageSize ?? 10);
+  const [state, setState] = useState<TableState>({ query: "", page: 1, pageSize: initialPageSize ?? 10 });
 
   const derived = useMemo(
-    () => deriveTableState(rows, query, page, pageSize, fields),
-    [rows, query, page, pageSize, fields]
+    () => deriveTableState(rows, state.query, state.page, state.pageSize, fields),
+    [rows, state.query, state.page, state.pageSize, fields]
   );
 
-  // Changing the query or the page size resets to page 1: filtering to 3
-  // rows (or shrinking the page size) while sitting on page 5 would
-  // otherwise show an empty table until deriveTableState's clamp catches up
-  // on the next render.
+  // All three setters route through nextTableState so the page-reset rule
+  // lives in exactly one place (see above) rather than being duplicated, or
+  // silently dropped, across setQuery/setPage/setPageSize.
   function setQuery(next: string) {
-    setQueryRaw(next);
-    setPage(1);
+    setState((prev) => nextTableState(prev, { query: next }));
+  }
+
+  function setPage(next: number) {
+    setState((prev) => nextTableState(prev, { page: next }));
   }
 
   function setPageSize(next: number) {
-    setPageSizeRaw(next);
-    setPage(1);
+    setState((prev) => nextTableState(prev, { pageSize: next }));
   }
 
   return {
-    query,
+    query: state.query,
     setQuery,
     page: derived.page,
     setPage,
-    pageSize,
+    pageSize: state.pageSize,
     setPageSize,
     visibleRows: derived.visibleRows,
     filteredCount: derived.filteredCount,

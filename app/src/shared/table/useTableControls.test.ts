@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { deriveTableState, filterRows, paginate } from "./useTableControls";
+import { deriveTableState, filterRows, nextTableState, paginate } from "./useTableControls";
+import type { TableState } from "./useTableControls";
 
 type Row = { order: string; product: string; amount: number };
 
@@ -59,6 +60,20 @@ describe("filterRows", () => {
   it("returns an empty array when nothing matches", () => {
     const rows = makeRows(5);
     expect(filterRows(rows, "no-such-thing", fields)).toEqual([]);
+  });
+
+  it("skips null field values instead of coercing them to the literal text \"null\"", () => {
+    type NullableRow = { order: string; confirmedReason?: string };
+    const rows: NullableRow[] = [
+      // The live API can hand back `confirmedReason: null` even though the
+      // declared TS type says `string | undefined` (see OpsReturnRow /
+      // isAwaitingReview in OpsQueuePage.tsx) -- the cast mirrors that real
+      // mismatch without resorting to `any`.
+      { order: "A", confirmedReason: null as unknown as string },
+      { order: "B", confirmedReason: "null-shaped reason" }
+    ];
+    const sparseFields = (row: NullableRow) => [row.order, row.confirmedReason];
+    expect(filterRows(rows, "null", sparseFields)).toEqual([rows[1]]);
   });
 });
 
@@ -161,5 +176,65 @@ describe("deriveTableState", () => {
     expect(state.page).toBe(1);
     expect(state.rangeStart).toBe(0);
     expect(state.rangeEnd).toBe(0);
+  });
+});
+
+// The page-reset rule is a distinct spec rule from deriveTableState's clamp:
+// changing the query or the page size snaps back to page 1, even when the
+// clamp alone would have left an in-range page untouched (e.g. narrowing to
+// a same-or-larger page count than the current page). Re-applying the same
+// query/pageSize value must NOT reset the page -- a re-render or an
+// identical keystroke shouldn't yank the user back to page 1.
+describe("nextTableState", () => {
+  it("resets to page 1 when the query changes", () => {
+    const state: TableState = { query: "a", page: 3, pageSize: 10 };
+    expect(nextTableState(state, { query: "b" })).toEqual({ query: "b", page: 1, pageSize: 10 });
+  });
+
+  it("does not reset the page when the query is set to its current value", () => {
+    const state: TableState = { query: "a", page: 3, pageSize: 10 };
+    expect(nextTableState(state, { query: "a" })).toEqual({ query: "a", page: 3, pageSize: 10 });
+  });
+
+  it("resets to page 1 when the page size changes", () => {
+    const state: TableState = { query: "a", page: 3, pageSize: 10 };
+    expect(nextTableState(state, { pageSize: 25 })).toEqual({ query: "a", page: 1, pageSize: 25 });
+  });
+
+  it("does not reset the page when the page size is set to its current value", () => {
+    const state: TableState = { query: "a", page: 3, pageSize: 10 };
+    expect(nextTableState(state, { pageSize: 10 })).toEqual({ query: "a", page: 3, pageSize: 10 });
+  });
+
+  it("changes the page alone without touching query or pageSize", () => {
+    const state: TableState = { query: "a", page: 2, pageSize: 10 };
+    expect(nextTableState(state, { page: 5 })).toEqual({ query: "a", page: 5, pageSize: 10 });
+  });
+
+  it("lands a narrowing query on page 1 instead of clamping to the old page", () => {
+    // The review's example: sitting on page 3 of a 5-page, 50-row set, then
+    // typing a query that narrows the result to exactly a 3-page set. A bare
+    // clamp (deriveTableState alone) would land on min(3, 3) = 3 -- the same
+    // page as before, looking like nothing happened. The reset rule requires
+    // page 1 instead.
+    const rows = makeRows(50);
+    const searchable = rows.map((row, index) => (index < 21 ? { ...row, product: `match-me ${row.product}` } : row));
+    const narrowFields = (row: Row) => [row.order, row.product, row.amount];
+
+    const state: TableState = { query: "", page: 3, pageSize: 10 };
+    const next = nextTableState(state, { query: "match-me" });
+    expect(next.page).toBe(1);
+
+    const derived = deriveTableState(searchable, next.query, next.page, next.pageSize, narrowFields);
+    expect(derived.filteredCount).toBe(21);
+    expect(derived.pageCount).toBe(3);
+    expect(derived.page).toBe(1);
+
+    // Contrast: clamping the *old* page (3) against the same narrowed result
+    // without going through the reset rule lands on page 3, not page 1 --
+    // proving the reset is a separate rule from the clamp, not a consequence
+    // of it.
+    const clampedOnly = deriveTableState(searchable, "match-me", state.page, state.pageSize, narrowFields);
+    expect(clampedOnly.page).toBe(3);
   });
 });
