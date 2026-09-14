@@ -110,7 +110,7 @@ export function ReturnDetailPage() {
                       <p>{entry.message}</p>
                       {terminal && entry.status === "REFUNDED" && refund ? (
                         <div className="ledger-refund">
-                          <span className="ledger-amount">{refund.amount?.toLocaleString("en-US")} BDT</span>
+                          <span className="ledger-amount">৳{refund.amount?.toLocaleString("en-US")}</span>
                           <span className="ledger-reference">{refund.method} &middot; {refund.reference}</span>
                         </div>
                       ) : null}

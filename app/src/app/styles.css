@@ -63,7 +63,10 @@
 body { margin: 0; }
 a { color: inherit; text-decoration: none; }
 button { cursor: pointer; font: inherit; }
-:root { background: hsl(var(--background)); color: hsl(var(--foreground)); font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
+/* "Noto Sans Bengali" fallback so general chrome (nav, page titles, table
+   headers -- anything outside the ledger.css editorial view) also renders
+   Bangla with correct conjuncts instead of an arbitrary OS default. */
+:root { background: hsl(var(--background)); color: hsl(var(--foreground)); font-family: Inter, "Noto Sans Bengali", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; }
 h1, h2, h3 { letter-spacing: -0.01em; }
 :focus-visible { border-radius: 4px; outline: 2px solid hsl(var(--primary)); outline-offset: 2px; }
 
@@ -119,7 +122,11 @@ section { margin: 0 auto; max-width: 1100px; width: 100%; }
 .panel-title { align-items: center; color: hsl(var(--muted-foreground)); display: flex; font-size: 13px; font-weight: 600; gap: 8px; }
 .panel strong { overflow-wrap: anywhere; }
 .panel-mark { color: hsl(var(--success-fg)); position: absolute; right: 14px; top: 14px; }
-.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 15px; }
+/* "Noto Sans Bengali" fallback: MyReturnsPage renders translated Bangla text
+   (e.g. "X দিন আগে") through this class for the age column, and the base
+   monospace stack has no Bengali glyphs at all -- see the matching note on
+   --ledger-mono in ledger.css. */
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, "Noto Sans Bengali", monospace; font-size: 15px; }
 .section-band { background: hsl(var(--secondary)); border: 1px solid hsl(var(--border)); border-radius: var(--radius); margin-top: 12px; padding: 20px; }
 .section-band div { align-items: center; color: hsl(var(--primary)); display: flex; gap: 10px; }
 .section-band h3 { margin: 0; }

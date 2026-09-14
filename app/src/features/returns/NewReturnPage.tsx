@@ -148,7 +148,7 @@ export function NewReturnPage() {
                   {photos.map((photo, index) => (
                     <span className="ledger-photo-chip" key={`${photo.name}-${index}`}>
                       {photo.name}
-                      <button type="button" onClick={() => removePhoto(index)} disabled={submitting} aria-label={`Remove ${photo.name}`}>
+                      <button type="button" onClick={() => removePhoto(index)} disabled={submitting} aria-label={t("returns.new.removePhoto").replace("{name}", photo.name)}>
                         <X size={12} />
                       </button>
                     </span>
