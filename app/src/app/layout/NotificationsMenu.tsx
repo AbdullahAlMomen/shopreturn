@@ -20,9 +20,9 @@ export function NotificationsMenu() {
         <DropdownMenuLabel>Notifications</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <div className="flex flex-col items-center gap-2 px-3 py-8 text-center">
-          <CheckCheck size={22} className="text-[hsl(var(--muted-foreground))]" />
+          <CheckCheck size={22} className="text-[var(--text-muted)]" />
           <p className="text-sm font-medium">You're all caught up</p>
-          <p className="text-xs text-[hsl(var(--muted-foreground))]">No new notifications right now.</p>
+          <p className="text-xs text-[var(--text-muted)]">No new notifications right now.</p>
         </div>
       </DropdownMenuContent>
     </DropdownMenu>

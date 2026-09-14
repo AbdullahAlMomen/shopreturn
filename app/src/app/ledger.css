@@ -3,8 +3,16 @@
    for every timestamp/amount/reference, hairline rules instead of cards or
    shadows, light mode only (shown on a projector, where contrast beats
    mood). Tokens below are copied verbatim from the design-review brief --
-   do not rename them, later tasks (ops console, manager dashboard) reuse
-   this file. */
+   do not rename them.
+   Scope: this file now holds ONLY the customer return-timeline treatment,
+   the new-return submission form and the ops case-review screen -- all
+   three render the same editorial "document" (the timeline read-only, the
+   other two as writable extensions of it) and share these classes. The
+   ops review QUEUE (list) and scope toggle, manager analytics, pattern
+   alerts and the decision log used to live here too; they were working
+   surfaces wearing the trust artifact's clothes, not the artifact itself,
+   so they moved to src/app/styles.css and now use the app's one
+   professional design system instead. */
 :root {
   --ledger-surface: #FBFAF7;   /* warm off-white */
   --ledger-ink: #14110E;       /* near-black */
@@ -161,51 +169,6 @@
   .ledger-submit { width: 100%; }
 }
 
-/* Ops queue (ops console, Task 1) -- the design review's agreed motif: the
-   same ledger tokens/typography as the customer detail view, but a working
-   tool for someone handling dozens of cases a day reads that motif at much
-   higher density. .ledger-row uses 14px vertical padding per row (roughly
-   28px of rhythm with its border); these rows run about half that. */
-.ops-queue { background: var(--ledger-surface); border: 1px solid var(--ledger-rule); border-radius: 6px; overflow-x: auto; }
-.ops-queue-head, .ops-queue-row {
-  align-items: center;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: 84px 1.1fr 1.5fr 1.2fr 110px 76px 120px;
-  min-width: 760px;
-  padding: 7px 16px;
-}
-.ops-queue-head {
-  border-bottom: 2px solid var(--ledger-ink);
-  color: var(--ledger-muted);
-  font-family: var(--ledger-mono);
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.ops-queue-row { border-top: 1px solid var(--ledger-rule); cursor: pointer; font-family: var(--ledger-serif); font-size: 13px; }
-.ops-queue-row:hover, .ops-queue-row:focus-visible { background: var(--ledger-band); }
-.ops-queue-row:focus-visible { outline: 1px solid var(--ledger-ink); outline-offset: -1px; }
-/* The queue's entire purpose: a return nobody has reviewed yet must be
-   obvious at a glance, not just labelled in one column. */
-.ops-queue-row-pending { background: var(--ledger-band); box-shadow: inset 3px 0 0 var(--ledger-warn); }
-.ops-queue-order { color: var(--ledger-ink); font-family: var(--ledger-mono); font-size: 12px; white-space: nowrap; }
-.ops-queue-product, .ops-queue-quote { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ops-queue-product { color: var(--ledger-ink); }
-.ops-queue-quote { color: var(--ledger-muted); font-style: italic; }
-.ops-queue-ai { display: grid; font-family: var(--ledger-mono); font-size: 11px; gap: 1px; }
-.ops-queue-ai-reason { color: var(--ledger-ink); font-weight: 600; letter-spacing: 0.02em; }
-.ops-queue-ai-confidence { color: var(--ledger-faint); }
-.ops-queue-ai-empty { color: var(--ledger-faint); font-family: var(--ledger-mono); font-size: 11px; font-style: italic; }
-.ops-queue-status { font-family: var(--ledger-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
-.ops-queue-age { color: var(--ledger-muted); font-family: var(--ledger-mono); font-size: 11px; white-space: nowrap; }
-.ops-queue-review {
-  border-radius: 999px; font-family: var(--ledger-mono); font-size: 10px; font-weight: 700;
-  justify-self: start; letter-spacing: 0.06em; padding: 3px 9px; text-transform: uppercase; white-space: nowrap;
-}
-.ops-queue-review-pending { background: var(--ledger-warn); color: var(--ledger-surface); }
-.ops-queue-review-done { background: transparent; border: 1px solid var(--ledger-rule); color: var(--ledger-faint); }
-
 /* Review screen (Task 2) -- "the editable sentence". Design review's
    explicit choice over a labelled form: dropdowns sit inline in a serif
    sentence, underlined rather than boxed, so the whole thing reads as
@@ -287,60 +250,3 @@
 @media (max-width: 480px) {
   .ledger-sentence { font-size: 15.5px; line-height: 2.3; }
 }
-
-/* ---- Ops queue scope toggle ------------------------------------------ */
-.ops-scope { align-items: center; display: flex; gap: 6px; }
-.ops-scope-option {
-  background: transparent; border: 1px solid var(--ledger-rule); border-radius: 2px;
-  color: var(--ledger-muted); cursor: pointer; font-family: var(--ledger-mono);
-  font-size: 12px; letter-spacing: 0.04em; padding: 6px 10px;
-}
-.ops-scope-option-active { border-color: var(--ledger-ink); color: var(--ledger-ink); font-weight: 600; }
-
-/* ---- Manager insights ------------------------------------------------ */
-.insights-page { --insights-bar: #2563A8; --insights-breach: var(--ledger-warn); color: var(--ledger-ink); }
-.insights-answer { border-left: 2px solid var(--ledger-ink); margin: 8px 0 36px; padding: 4px 0 4px 18px; }
-.insights-answer-lead { color: var(--ledger-muted); font-family: var(--ledger-serif); font-size: 15px; margin: 0 0 8px; }
-.insights-answer-worst { font-family: var(--ledger-serif); font-size: clamp(18px, 2.2vw, 22px); line-height: 1.45; margin: 0; max-width: 62ch; }
-.insights-facets { display: grid; gap: 32px 44px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr)); }
-.facet-title {
-  border-bottom: 1px solid var(--ledger-rule); color: var(--ledger-muted); font-family: var(--ledger-mono);
-  font-size: 11px; font-weight: 600; letter-spacing: 0.08em; margin: 0 0 12px; padding-bottom: 8px; text-transform: uppercase;
-}
-.facet-list { display: grid; gap: 14px; list-style: none; margin: 0; padding: 0; }
-.facet-row-head, .facet-row-foot { align-items: baseline; display: flex; gap: 12px; justify-content: space-between; }
-.facet-label { font-family: var(--ledger-serif); font-size: 14.5px; overflow-wrap: anywhere; }
-.facet-value { font-family: var(--ledger-mono); font-size: 13px; font-variant-numeric: tabular-nums; font-weight: 700; white-space: nowrap; }
-.facet-track { background: var(--ledger-band); border-radius: 2px; height: 6px; margin: 6px 0 4px; overflow: hidden; }
-.facet-bar { background: var(--insights-bar); border-radius: 2px; height: 100%; }
-.facet-bar-breach { background: var(--insights-breach); }
-.facet-row-foot { color: var(--ledger-faint); flex-wrap: wrap; font-family: var(--ledger-mono); font-size: 11.5px; font-variant-numeric: tabular-nums; }
-.facet-rate-breach { color: var(--insights-breach); font-weight: 600; }
-
-/* ---- Pattern alerts --------------------------------------------------- */
-.alert-strip { display: grid; gap: 10px; margin: 0 0 32px; }
-.alert-card { background: var(--ledger-band); border-left: 3px solid var(--ledger-warn); display: grid; gap: 8px; padding: 14px 16px; }
-.alert-card-quiet { background: transparent; border-left-color: var(--ledger-rule); color: var(--ledger-muted); }
-.alert-sentence { font-family: var(--ledger-serif); font-size: 16.5px; line-height: 1.45; margin: 0; }
-.alert-draft { font-family: var(--ledger-serif); font-size: 13.5px; font-style: italic; line-height: 1.55; margin: 2px 0 0; }
-.alert-draft-label, .alert-meta { color: var(--ledger-faint); font-family: var(--ledger-mono); font-size: 11px; letter-spacing: 0.04em; }
-.alert-actions { align-items: center; display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; }
-.alert-strip-empty { color: var(--ledger-muted); font-family: var(--ledger-serif); font-style: italic; margin: 0 0 28px; }
-
-/* ---- Decision log ----------------------------------------------------- */
-.decision-log { border-top: 1px solid var(--ledger-rule); margin-top: 44px; padding-top: 22px; }
-.decision-log-title { font-family: var(--ledger-serif); font-size: 21px; font-weight: 400; margin: 0 0 16px; }
-.decision-form { display: grid; gap: 12px 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); margin-bottom: 26px; }
-.decision-form label { color: var(--ledger-muted); display: grid; font-family: var(--ledger-mono); font-size: 11px; gap: 4px; letter-spacing: 0.04em; }
-.decision-form select, .decision-form input, .decision-form textarea {
-  background: var(--ledger-surface); border: 1px solid var(--ledger-rule); border-radius: 2px;
-  color: var(--ledger-ink); font-family: var(--ledger-serif); font-size: 14px; min-width: 0; padding: 8px;
-}
-.decision-form-wide { grid-column: 1 / -1; }
-.decision-rows { display: grid; }
-.decision-row { align-items: center; border-bottom: 1px solid var(--ledger-rule); display: grid; gap: 4px 16px; grid-template-columns: minmax(0, 1fr) auto; padding: 12px 0; }
-.decision-type { font-family: var(--ledger-mono); font-size: 12px; font-weight: 600; letter-spacing: 0.06em; overflow-wrap: anywhere; text-transform: uppercase; }
-.decision-status-OPEN { color: var(--ledger-warn); }
-.decision-status-DONE { color: var(--ledger-good); }
-.decision-note { font-family: var(--ledger-serif); font-size: 14.5px; grid-column: 1 / -1; line-height: 1.5; margin: 0; }
-.decision-meta { color: var(--ledger-faint); font-family: var(--ledger-mono); font-size: 11px; }

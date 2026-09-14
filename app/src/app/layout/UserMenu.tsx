@@ -34,8 +34,8 @@ export function UserMenu({ onNavigate }: { onNavigate: (path: string) => void })
           <span className="avatar avatar-lg">{userInitials(profile)}</span>
           <div className="grid gap-0.5 overflow-hidden">
             <strong className="truncate text-sm font-semibold">{name}</strong>
-            {profile?.email ? <small className="truncate text-xs text-[hsl(var(--muted-foreground))]">{profile.email}</small> : null}
-            {roles.length > 0 ? <small className="truncate text-xs capitalize text-[hsl(var(--muted-foreground))]">{roles.join(", ")}</small> : null}
+            {profile?.email ? <small className="truncate text-xs text-[var(--text-muted)]">{profile.email}</small> : null}
+            {roles.length > 0 ? <small className="truncate text-xs capitalize text-[var(--text-muted)]">{roles.join(", ")}</small> : null}
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
