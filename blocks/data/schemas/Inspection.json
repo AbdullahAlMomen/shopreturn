@@ -1,0 +1,15 @@
+{
+  "schemaName": "Inspection",
+  "collectionName": "blx_Inspections",
+  "schemaType": 1,
+  "fields": [
+    { "name": "returnId", "type": "String", "description": "ReturnCase.ItemId" },
+    { "name": "customerItemId", "type": "String", "description": "Denormalised owner" },
+    { "name": "conditionOnArrival", "type": "String", "description": "GOOD|MINOR_DAMAGE|MAJOR_DAMAGE|UNUSABLE" },
+    { "name": "restockable", "type": "Boolean" },
+    { "name": "faultAttribution", "type": "String", "description": "COURIER|SELLER|CUSTOMER" },
+    { "name": "inspectorNotes", "type": "String", "description": "Internal. Customers have no grant on this schema." },
+    { "name": "inspectedBy", "type": "String" },
+    { "name": "inspectedAt", "type": "DateTime" }
+  ]
+}

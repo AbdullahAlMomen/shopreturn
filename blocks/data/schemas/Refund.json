@@ -1,0 +1,13 @@
+{
+  "schemaName": "Refund",
+  "collectionName": "blx_Refunds",
+  "schemaType": 1,
+  "fields": [
+    { "name": "returnId", "type": "String", "description": "ReturnCase.ItemId" },
+    { "name": "customerItemId", "type": "String", "description": "Denormalised owner" },
+    { "name": "method", "type": "String", "description": "BKASH|NAGAD|BANK" },
+    { "name": "amount", "type": "Float", "description": "Refunded amount in BDT" },
+    { "name": "reference", "type": "String", "description": "Provider transaction reference, shown to the customer" },
+    { "name": "paidAt", "type": "DateTime" }
+  ]
+}

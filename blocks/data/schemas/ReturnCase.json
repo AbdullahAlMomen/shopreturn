@@ -1,0 +1,30 @@
+{
+  "schemaName": "ReturnCase",
+  "collectionName": "blx_ReturnCases",
+  "schemaType": 1,
+  "fields": [
+    { "name": "customerItemId", "type": "String", "description": "IAM user itemId of the owning customer. Denormalised so every policy is a single-row predicate." },
+    { "name": "orderNumber", "type": "String", "description": "Matches Orders.orderNumber" },
+    { "name": "sku", "type": "String", "description": "Matches Orders.sku" },
+    { "name": "productName", "type": "String" },
+    { "name": "unitPrice", "type": "Float", "description": "Unit price in BDT, copied at submission" },
+    { "name": "area", "type": "String" },
+    { "name": "courier", "type": "String" },
+    { "name": "customerName", "type": "String", "isPIIData": true },
+    { "name": "customerPhone", "type": "String", "isPIIData": true },
+    { "name": "customerEmail", "type": "String", "isPIIData": true },
+    { "name": "rawCustomerText", "type": "String", "description": "The customer's own words, Banglish as written" },
+    { "name": "photoFileIds", "type": "String", "isArray": true, "description": "Blocks Storage file ids" },
+    { "name": "status", "type": "String", "description": "SUBMITTED|ACCEPTED|RECEIVED|INSPECTED|REFUND_PROCESSING|REFUNDED|REJECTED" },
+    { "name": "aiReason", "type": "String", "description": "Agent proposal. Masked from customer." },
+    { "name": "aiConfidence", "type": "Float", "description": "Agent proposal. Masked from customer." },
+    { "name": "aiRestockable", "type": "Boolean", "description": "Agent proposal. Masked from customer." },
+    { "name": "aiCourierClaim", "type": "Boolean", "description": "Agent proposal. Masked from customer." },
+    { "name": "aiDraftMessage", "type": "String", "description": "Agent draft of the customer update. Masked from customer; published only on ops approval." },
+    { "name": "confirmedReason", "type": "String", "description": "Ops-confirmed. Analytics read only this, never aiReason." },
+    { "name": "restockable", "type": "Boolean", "description": "Ops-confirmed" },
+    { "name": "courierClaim", "type": "Boolean", "description": "Ops-confirmed" },
+    { "name": "opsCorrectedFields", "type": "String", "isArray": true, "description": "Which agent proposals ops changed. Feeds the agent-accuracy metric." },
+    { "name": "rejectionReason", "type": "String", "description": "Required before status REJECTED. Customer-visible." }
+  ]
+}
