@@ -1,4 +1,4 @@
-// Eight access-control assertions proving (or, right now, disproving) the
+// Nine access-control assertions proving (or, right now, disproving) the
 // ShopReturn access boundary.
 //
 // At this commit no data access policies are deployed and all seven schemas
@@ -18,6 +18,12 @@
 // insert, which `blocks/data/ACCESS-NOTES.md` §10 records as unverified.
 // It is expected to FAIL until `customer-creates-returns` carries an
 // ownership rule -- that failure is the evidence the hole is real.
+//
+// Assertion 9 is the one that matters for the product. Assertion 7 asks
+// whether the forged write can be BLOCKED (it cannot). Assertion 9 asks
+// whether it can do any HARM -- whether the forged row reaches the customer
+// it names. Both are kept: 7 stays red on purpose so nobody later assumes
+// inserts are validated.
 //
 // Assertion 8 was appended alongside the `ops` delete grants on `ReturnCase`,
 // `Inspection` and `Refund`. Assertion 6 shows `ops` cannot UPDATE a
@@ -397,9 +403,86 @@ async function main() {
     }
   }
 
+  // 9. THE ONE THAT MATTERS. Customer B forges a ReturnCase naming customer A
+  // as owner (assertion 7 shows this insert cannot be blocked), and customer A
+  // must NOT see it.
+  //
+  // This works because `customer-reads-own-returns` keys on `CreatedBy`, which
+  // the server stamps from the auth context at insert time and which is not
+  // even a field on `ReturnCaseInsertInput` -- a client cannot set it. The
+  // forged row therefore carries customer B's id, and the read-side rule keeps
+  // it away from customer A. The write hole is real but inert.
+  //
+  // Passes when A cannot see the forged row; fails when A can. The forged row
+  // is deleted as ops afterwards either way, and A's list is re-checked to
+  // confirm the fixture set is exactly as it started.
+  {
+    const label = "[HARM] customerB's forged ReturnCase is invisible to customerA";
+    const forge = await attempt(() =>
+      blocksB.data.collection("ReturnCase").create({
+        customerItemId: customerAItemId,
+        orderNumber: "10-9996",
+        sku: "SH-022",
+        status: "SUBMITTED",
+        rawCustomerText: "harm probe -- customerB forging a row onto customerA"
+      })
+    );
+
+    const forgedId = forge.outcome === "ok" ? forge.response?.data?.insertReturnCase?.itemId : undefined;
+
+    if (!forgedId) {
+      // The insert was blocked. Nothing was forged, so there is nothing for A
+      // to see and this assertion proves nothing on its own -- say so rather
+      // than banking a vacuous pass.
+      record(
+        9,
+        label,
+        true,
+        "vacuous -- the forging insert was itself denied, so no forged row existed to hide (this means assertion 7 now passes; re-read both together)"
+      );
+    } else {
+      const aView = await attempt(() =>
+        blocksA.data.collection("ReturnCase").list({ fields: ["ItemId"] })
+      );
+      const visibleIds = itemsOf(aView.response, "getReturnCases").map((r) => r?.ItemId ?? r?.itemId);
+      const leaked = visibleIds.includes(forgedId);
+
+      // Clean up before recording, so a failure still leaves the fixtures sane.
+      const cleanup = await deleteForgedReturnCase(forgedId, [["ops", blocksOps]]);
+      const after = await attempt(() =>
+        blocksA.data.collection("ReturnCase").list({ fields: ["ItemId"] })
+      );
+      const afterIds = itemsOf(after.response, "getReturnCases").map((r) => r?.ItemId ?? r?.itemId);
+      const restored = afterIds.length === 1 && afterIds[0] === returnCaseItemId;
+
+      if (leaked) {
+        record(
+          9,
+          label,
+          false,
+          `LEAKED -- customerA can see the forged row (${forgedId}); customerA saw [${visibleIds.join(", ")}]; cleanup: ${cleanup.notes.join(" | ")}`
+        );
+      } else if (!restored) {
+        record(
+          9,
+          label,
+          false,
+          `hidden from customerA, BUT the fixture set did not come back clean -- customerA now sees [${afterIds.join(", ")}], expected only ${returnCaseItemId}; cleanup: ${cleanup.notes.join(" | ")}`
+        );
+      } else {
+        record(
+          9,
+          label,
+          true,
+          `hidden -- forged row ${forgedId} created but invisible to customerA (CreatedBy is the forger); customerA still sees exactly the fixture row; cleanup: ${cleanup.notes.join(" | ")}`
+        );
+      }
+    }
+  }
+
   const passing = results.filter(Boolean).length;
-  console.log(`${passing}/8 passing`);
-  process.exit(passing === 8 ? 0 : 1);
+  console.log(`${passing}/9 passing`);
+  process.exit(passing === 9 ? 0 : 1);
 }
 
 main().catch((error) => {

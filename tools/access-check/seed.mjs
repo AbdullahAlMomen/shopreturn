@@ -23,6 +23,14 @@
 // matters because the six rows are seeded in two passes (four rows in the
 // original task, two more -- PatternAlert and Decision -- added afterward);
 // rerunning the whole script must not duplicate the first four.
+// !! OUT OF DATE -- DO NOT RE-SEED WITHOUT READING THIS !!
+// This script creates the ReturnCase as `ops`. Since customer-reads-own-returns
+// was rekeyed onto CreatedBy (ACCESS-NOTES.md sections 12-13), an ops-created
+// ReturnCase is INVISIBLE to the customer, and assertion 2 (the control) fails
+// with "BOUNDARY TOO TIGHT". The fixture currently in fixture-ids.json was
+// rebuilt by hand: customer A created the ReturnCase, then ops edited in the
+// ai* columns. Re-seeding must do the same. See also section 10: this script
+// can no longer create Order/PatternAlert/Decision as ops either.
 import { readFile, writeFile } from "node:fs/promises";
 import { signIn } from "./client.mjs";
 

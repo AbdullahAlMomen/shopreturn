@@ -295,30 +295,18 @@ equivalent is exposed.
 
 ### What this means for ShopReturn
 
-**Ownership on insert cannot be enforced in `rules.json`.** The rule is left deployed
-on `customer-creates-returns` as a declaration of intent, with its
-`policyDescription` stating in full that it is a no-op — do not read its presence as
-protection.
+**Ownership on insert cannot be enforced in `rules.json`, and that turned out not to
+matter.** The write cannot be blocked, but it can be made harmless — see §12. The
+rule is left deployed on `customer-creates-returns` as a declaration of intent, with
+its `policyDescription` stating in full that it is a no-op. Do not read its presence
+as protection.
 
-Enforcement therefore falls to application code: **the portal must always set
-`customerItemId` from `iam.me()` and never from client input.** That is strictly
-weaker than a policy. It protects the app's own users; it does **not** protect
-against a hand-crafted API call carrying a valid customer token, which can still
-create a `ReturnCase` owned by any customer. Anyone relying on this boundary must be
-told so plainly rather than discovering it later.
-
-Options that would actually close it, none of them a `rules.json` change:
-
-- server-side stamping of `customerItemId` from the token in the data gateway (not
-  exposed by the CLI or the API as far as probed);
-- routing all customer inserts through a service identity or backend endpoint that
-  sets the owner, and removing `customer-creates-returns` altogether;
-- a scheduled reconciliation flagging `ReturnCase` rows whose `customerItemId` does
-  not match their creator (detective, not preventive).
-
-**Assertion 7 is left failing on purpose.** The suite stands at 7/8. That is an
-accurate statement of the boundary, and it should turn green only when the hole is
-genuinely closed — never by weakening the assertion.
+**Assertion 7 is left failing on purpose**, and should stay that way. It is an
+accurate statement of a real platform limitation, and it is the standing warning
+that **inbound rows are not validated against any row-field rule**. Anyone who later
+writes a policy expecting an insert to be checked needs to see it fail. It should
+turn green only if the platform starts evaluating these rules — never by weakening
+the assertion.
 
 ### Related: the assertion-7 cleanup path
 
@@ -328,3 +316,100 @@ delete grant covers, so forged rows accumulated one per failing run. With
 `ops-deletes-returns` deployed the cleanup works and a full run now leaves the
 fixture set exactly as it found it: verified afterwards at one row in every
 collection, with all six ids in `fixture-ids.json` still present.
+
+## 12. `CreatedBy` is server-stamped and unforgeable — this is what saves the design
+
+§11 shows an inbound row's `customerItemId` cannot be policy-checked on insert.
+The fix is not to block the write but to stop keying reads on a field the attacker
+controls.
+
+**Every schema carries a platform-managed `CreatedBy` field, set by the server from
+the auth context at insert time.** It is usable as a rule operand
+(`leftSource: 1, leftOperand: "CreatedBy"`), spelled exactly `CreatedBy`.
+
+Evidence that it is unforgeable:
+
+- Customer B inserted a `ReturnCase` with `customerItemId` set to customer A's id.
+  The stored row came back with `CreatedBy` = **B's** user id. The server ignored
+  what the client claimed and recorded who actually called.
+- Passing `CreatedBy` (or `createdBy`) in the insert payload is **rejected outright**
+  by the GraphQL layer: `The field 'CreatedBy' does not exist on the type
+  'ReturnCaseInsertInput'`. It is not a field a client can set at all, so there is
+  nothing to forge.
+- An `ops` `update` of the row does **not** change `CreatedBy` — verified by having
+  customer A create a row, having `ops` edit five columns on it, and reading
+  `CreatedBy` back unchanged as A. (`LastUpdatedBy` is the field that moves.)
+
+### The rule this enabled
+
+`customer-reads-own-returns` now keys on `CreatedBy`, not `customerItemId`:
+
+```json
+{ "leftSource": 1, "leftOperand": "CreatedBy", "operator": 0,
+  "rightSource": 0, "rightOperand": "UserId" }
+```
+
+A forged `ReturnCase` carries the forger's `CreatedBy`, so the customer it names
+never sees it. **The write hole is still open and is now inert.** Assertion 9 asserts
+exactly this and passes.
+
+That it works is not assumed: before this change the same probe put the forged row
+**into customer A's list** (two rows returned, §11 observation 1); after it, A sees
+only their own row. Same probe, opposite result, one rule changed.
+
+### Why only `ReturnCase`
+
+`ReturnCase` is the **only** schema a customer can write to. `ReturnTimeline`,
+`Inspection` and `Refund` are ops-insert-only, so a customer cannot forge rows there
+at all, and their `CreatedBy` is `ops` rather than the customer. Those policies
+therefore keep keying on `customerItemId`, which is correct for them and is the only
+thing that could work. `customer-reads-own-visible-timeline` and
+`customer-reads-own-refunds` were deliberately left untouched; the patch script that
+made this change asserts they still key on `customerItemId` and refuses to run
+otherwise.
+
+### The trade-off this introduces — read before extending it
+
+**A `ReturnCase` created by `ops` on a customer's behalf is invisible to that
+customer.** Ownership for reads now means "you created it", not "it is about you".
+For the current product that is right: customers raise their own returns through the
+portal. But a phone-in or CS-raised return would silently not appear for the
+customer. If that flow is ever added, this policy needs revisiting — most likely as
+`CreatedBy == UserId` **OR** `customerItemId == UserId`, which is safe only if
+row-field rules on insert are still inert *and* nothing else depends on the strict
+form, so re-probe before doing it.
+
+This trade-off is not hypothetical: it broke the fixture set the moment it was
+deployed. See §13.
+
+## 13. The fixture `ReturnCase` must be created by the customer, not by `ops`
+
+`seed.mjs` signs in as `ops` and inserts every fixture row. Under §12's rule the
+seeded `ReturnCase` had `CreatedBy` = `ops`, so **customer A could not read their
+own return** and assertion 2 (the control) failed with "BOUNDARY TOO TIGHT". That was
+a fixture problem, not a policy problem: the fixture did not reflect how a real
+return is created.
+
+The fixture was rebuilt rather than the policy loosened:
+
+1. customer A created the `ReturnCase` themselves (same order, sku and text);
+2. `ops` then edited in the five `ai*` columns — necessary so assertion 3 still
+   tests **masking** rather than passing vacuously against an empty field;
+3. `ops` inserted a fresh `ReturnTimeline` row pointing at the new return;
+4. `ops` repointed the `Inspection`, and `manager` repointed the `PatternAlert`'s
+   `contributingReturnIds`;
+5. `ops` deleted the old `ops`-created `ReturnCase`;
+6. `fixture-ids.json` was updated: new `returnCaseItemId` and `timelineItemId`.
+
+**One unavoidable orphan:** the original `ReturnTimeline` row
+(`baca1ee5-47c4-4b77-8a28-be173cd9e1d8`) still points at the deleted return. It
+cannot be repointed (no edit policy) or removed (no delete policy) because
+`ReturnTimeline` is append-only by design — the same guarantee assertions 6 and 8
+protect. `ReturnTimeline` therefore holds **2** rows where every other collection
+holds 1. That is expected; do not "fix" it by granting delete.
+
+**`seed.mjs` has not been updated and would reproduce the broken fixture.** It still
+creates the `ReturnCase` as `ops`. It is already non-runnable for a fresh seed
+(§10), so this is one more reason it needs rework before it is used again: the
+`ReturnCase` insert must be made by the customer, with a follow-up `ops` edit for the
+`ai*` columns.
