@@ -6,10 +6,12 @@ import { ErrorPage } from "../../features/auth/ErrorPage";
 import { LoginPage } from "../../features/auth/LoginPage";
 import { NotFoundPage } from "../../features/auth/NotFoundPage";
 import { ProfilePage } from "../../features/profile/ProfilePage";
+import { MyReturnsPage } from "../../features/returns/MyReturnsPage";
 
 const protectedRoutes = {
   "/": ProfilePage,
-  "/error": ErrorPage
+  "/error": ErrorPage,
+  "/returns": MyReturnsPage
 };
 
 export function AppRouter() {
