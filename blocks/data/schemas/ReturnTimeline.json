@@ -1,0 +1,14 @@
+{
+  "schemaName": "ReturnTimeline",
+  "collectionName": "blx_ReturnTimelines",
+  "schemaType": 1,
+  "fields": [
+    { "name": "returnId", "type": "String", "description": "ReturnCase.ItemId" },
+    { "name": "customerItemId", "type": "String", "description": "Denormalised owner, for the row policy" },
+    { "name": "at", "type": "DateTime", "description": "When the customer was told" },
+    { "name": "status", "type": "String", "description": "Status this entry records" },
+    { "name": "message", "type": "String", "description": "Exactly what the customer was told" },
+    { "name": "isCustomerVisible", "type": "Boolean", "description": "False for internal entries" },
+    { "name": "authorRole", "type": "String", "description": "system|ops|manager" }
+  ]
+}

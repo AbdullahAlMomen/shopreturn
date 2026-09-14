@@ -22,3 +22,37 @@ blocks-cli/
 # OS noise
 Thumbs.db
 .DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Test and coverage output
+coverage/
+test-results/
+playwright-report/
+
+# Build caches
+.vite/
+.turbo/
+.cache/
+*.tsbuildinfo
+
+# Editor and IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS noise
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Every dotenv except the checked-in templates
+.env.*
+!.env.example
+!.env.*.example

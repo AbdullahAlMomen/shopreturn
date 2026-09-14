@@ -1,0 +1,49 @@
+{
+  "schemaName": "Order",
+  "collectionName": "blx_Orders",
+  "schemaType": 1,
+  "fields": [
+    {
+      "name": "customerItemId",
+      "type": "String",
+      "description": "IAM user itemId of the owning customer. The read policy keys on this."
+    },
+    {
+      "name": "orderNumber",
+      "type": "String",
+      "isUniqueData": true,
+      "description": "Seller order reference, e.g. 10-4821"
+    },
+    {
+      "name": "sku",
+      "type": "String",
+      "description": "Product SKU, e.g. SH-022"
+    },
+    {
+      "name": "productName",
+      "type": "String",
+      "description": "Human-readable product name"
+    },
+    {
+      "name": "unitPrice",
+      "type": "Float",
+      "description": "Unit price in BDT"
+    },
+    {
+      "name": "area",
+      "type": "String",
+      "description": "Delivery area, e.g. Mirpur 11"
+    },
+    {
+      "name": "courier",
+      "type": "String",
+      "description": "Courier company name"
+    },
+    {
+      "name": "customerEmail",
+      "type": "String",
+      "isPIIData": true,
+      "description": "Email of the customer who placed the order"
+    }
+  ]
+}
