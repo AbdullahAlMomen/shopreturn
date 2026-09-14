@@ -7,12 +7,24 @@ import { LoginPage } from "../../features/auth/LoginPage";
 import { NotFoundPage } from "../../features/auth/NotFoundPage";
 import { ProfilePage } from "../../features/profile/ProfilePage";
 import { MyReturnsPage } from "../../features/returns/MyReturnsPage";
+import { ReturnDetailPage } from "../../features/returns/ReturnDetailPage";
 
 const protectedRoutes = {
   "/": ProfilePage,
   "/error": ErrorPage,
   "/returns": MyReturnsPage
 };
+
+// "/returns" resolves to two different pages depending on the query string.
+// The router only matches on exact pathname (no path params), and `search`
+// is already parsed here, so the id-present/absent branch is decided at
+// this one call site rather than inside either page component.
+function resolveProtectedPage(path: string, search: string) {
+  if (path === "/returns" && new URLSearchParams(search).get("id")) {
+    return ReturnDetailPage;
+  }
+  return protectedRoutes[path as keyof typeof protectedRoutes];
+}
 
 export function AppRouter() {
   const [path, setPath] = useState(() => window.location.pathname);
@@ -47,7 +59,7 @@ export function AppRouter() {
     );
   }
 
-  const Page = protectedRoutes[path as keyof typeof protectedRoutes];
+  const Page = resolveProtectedPage(path, search);
   if (!Page) {
     return <NotFoundPage onNavigate={navigate} />;
   }

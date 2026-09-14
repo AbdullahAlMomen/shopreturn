@@ -1,0 +1,103 @@
+/* Ledger timeline detail view -- the spec's "trust artifact".
+   Editorial treatment agreed in design review: serif for prose, monospace
+   for every timestamp/amount/reference, hairline rules instead of cards or
+   shadows, light mode only (shown on a projector, where contrast beats
+   mood). Tokens below are copied verbatim from the design-review brief --
+   do not rename them, later tasks (ops console, manager dashboard) reuse
+   this file. */
+:root {
+  --ledger-surface: #FBFAF7;   /* warm off-white */
+  --ledger-ink: #14110E;       /* near-black */
+  --ledger-muted: #7A7266;
+  --ledger-faint: #9C9488;
+  --ledger-rule: #E3DED4;      /* hairline */
+  --ledger-band: #F5F2EA;      /* emphasis row */
+  --ledger-good: #1F6F4A;      /* terminal/refunded */
+  --ledger-warn: #B23A18;      /* rejected */
+  --ledger-serif: Georgia, "Times New Roman", serif;
+  --ledger-mono: ui-monospace, Menlo, Consolas, monospace;
+}
+
+.ledger-page {
+  background: var(--ledger-surface);
+  border: 1px solid var(--ledger-rule);
+  border-radius: 6px;
+  color: var(--ledger-ink);
+  font-family: var(--ledger-serif);
+  padding: 36px;
+}
+
+.ledger-back {
+  align-items: center;
+  color: var(--ledger-muted);
+  display: inline-flex;
+  font-family: var(--ledger-mono);
+  font-size: 12px;
+  gap: 6px;
+  letter-spacing: 0.06em;
+  margin-bottom: 20px;
+  text-transform: uppercase;
+  transition: color 0.15s ease;
+}
+.ledger-back:hover { color: var(--ledger-ink); }
+
+.ledger-header {
+  align-items: baseline;
+  border-bottom: 2px solid var(--ledger-ink);
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding-bottom: 18px;
+}
+.ledger-order { font-family: var(--ledger-serif); font-size: 26px; font-weight: 400; margin: 0; overflow-wrap: anywhere; }
+.ledger-status { font-family: var(--ledger-mono); font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+.ledger-status-good { color: var(--ledger-good); }
+.ledger-status-warn { color: var(--ledger-warn); }
+.ledger-status-neutral { color: var(--ledger-muted); }
+
+.ledger-quote {
+  background: var(--ledger-band);
+  border-left: 2px solid var(--ledger-rule);
+  color: var(--ledger-ink);
+  font-family: var(--ledger-serif);
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.6;
+  margin: 24px 0 0;
+  padding: 14px 18px;
+}
+
+.ledger-label {
+  color: var(--ledger-muted);
+  font-family: var(--ledger-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  margin: 28px 0 4px;
+  text-transform: uppercase;
+}
+
+.ledger-rows { display: grid; }
+.ledger-row {
+  border-top: 1px solid var(--ledger-rule);
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 74px 1fr;
+  padding: 14px 0;
+}
+.ledger-row-terminal {
+  background: var(--ledger-band);
+  border-bottom: 2px solid var(--ledger-ink);
+  border-top: 1px solid var(--ledger-rule);
+}
+.ledger-when { color: var(--ledger-muted); font-family: var(--ledger-mono); font-size: 12px; line-height: 1.5; white-space: nowrap; }
+.ledger-message p { color: var(--ledger-ink); font-family: var(--ledger-serif); font-size: 13.5px; line-height: 1.55; margin: 0; }
+.ledger-refund { display: grid; gap: 3px; margin-top: 10px; }
+.ledger-amount { color: var(--ledger-good); font-family: var(--ledger-mono); font-size: 15px; font-weight: 700; }
+.ledger-reference { color: var(--ledger-faint); font-family: var(--ledger-mono); font-size: 12px; }
+.ledger-rejection { color: var(--ledger-warn); font-family: var(--ledger-serif); font-size: 13.5px; line-height: 1.55; margin: 10px 0 0; }
+
+@media (max-width: 480px) {
+  .ledger-page { padding: 22px 16px; }
+  .ledger-header { align-items: flex-start; flex-direction: column; gap: 6px; }
+  .ledger-row { column-gap: 10px; grid-template-columns: 60px 1fr; }
+}

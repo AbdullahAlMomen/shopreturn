@@ -1,3 +1,8 @@
+/* Editorial "ledger" design system for the return detail view (Task 2).
+   @import must precede all other rules (CSS spec), so this comes before
+   the @tailwind directives even though it's logically an app-level layer. */
+@import "./ledger.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

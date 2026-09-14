@@ -33,6 +33,13 @@ export const defaultDictionary = {
   "returns.age.unknown": "Unknown",
   "returns.age.today": "Today",
   "returns.age.daysUnit": "days ago",
+  "returns.detail.back": "Back to my returns",
+  "returns.detail.orderPrefix": "Return #",
+  "returns.detail.recordLabel": "Record of updates",
+  "returns.detail.empty": "No updates recorded yet.",
+  "returns.detail.loadError": "Could not load this return.",
+  "returns.detail.notFound.title": "Return not found",
+  "returns.detail.notFound.description": "This return does not exist or you do not have access to it.",
   "notFound.title": "404",
   "notFound.message": "This page does not exist.",
   "notFound.home": "Back home"
