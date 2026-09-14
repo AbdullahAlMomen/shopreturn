@@ -1,0 +1,22 @@
+# Never copy local secrets or machine-local state into the image. The
+# Dockerfile does `COPY . .`, and Docker does not read .gitignore -- without
+# this file a local build bakes app/.env and the dev TLS certs into a layer.
+.env
+.env.*
+!.env.example
+.cert/
+
+# Build inputs that the image rebuilds itself, or never needs
+node_modules/
+dist/
+.git/
+.gitignore
+.vscode/
+.idea/
+
+# Test and tooling output
+coverage/
+test-results/
+playwright-report/
+*.log
+*.tsbuildinfo
