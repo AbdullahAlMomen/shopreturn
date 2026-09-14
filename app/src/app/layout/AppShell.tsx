@@ -47,12 +47,19 @@ export function AppShell({ activePath, children, onNavigate }: { activePath: str
     <div className="shell">
       <aside className={collapsed ? "collapsed" : ""}>
         <div className="sidebar-header">
-          {collapsed ? null : (
-            <a className="brand" href="/" onClick={(event) => { event.preventDefault(); onNavigate("/"); }}>
-              <span className="brand-mark"><img src="/logo.svg" alt="" width={20} height={20} /></span>
-              <span>{t("app.name")}</span>
-            </a>
-          )}
+          {/* Collapsed rail keeps the mark and drops only the wordmark --
+             same trade the nav items below make with their labels. The
+             wordmark carries the link's accessible name when expanded; an
+             aria-label stands in for it once that text is gone. */}
+          <a
+            className="brand"
+            href="/"
+            aria-label={collapsed ? t("app.name") : undefined}
+            onClick={(event) => { event.preventDefault(); onNavigate("/"); }}
+          >
+            <span className="brand-mark"><img src="/logo.svg" alt="" width={20} height={20} /></span>
+            {collapsed ? null : <span>{t("app.name")}</span>}
+          </a>
           {/* Hidden on mobile by CSS (nothing to toggle -- the rail is always
              collapsed there); on desktop it's the only control that can
              re-expand the sidebar, so it must never be the thing collapsing hides. */}
