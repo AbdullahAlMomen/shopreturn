@@ -9,6 +9,7 @@ import { Skeleton } from "../../shared/ui/Skeleton";
 import { StatusPill } from "../../shared/ui/StatusPill";
 import { useT } from "../../lib/i18n/LocalizationProvider";
 import type { TranslationKey } from "../../lib/i18n/dictionary";
+import { useRoles } from "../../lib/blocks/useRoles";
 import { useMyReturns } from "./useMyReturns";
 import type { ReturnRow } from "./useMyReturns";
 
@@ -51,6 +52,16 @@ function formatAge(row: ReturnRow, t: (key: TranslationKey, fallback?: string) =
 export function MyReturnsPage() {
   const { returns, loading, error, refetch } = useMyReturns();
   const { t } = useT();
+  const { isCustomer, isLoading: rolesLoading } = useRoles();
+  // Same rule AppShell's nav label uses (see navItems.ts/AppShell.tsx):
+  // this page lists every return the server hands back, and for ops/manager
+  // that's the whole project (staff-reads-all-returns / manager-reads-all-returns
+  // in blocks/data/rules.json), not just the viewer's own. While roles are
+  // still loading, keep the customer wording -- flashing "All returns" at a
+  // customer for a beat is worse than a one-beat-stale "My returns" for staff.
+  const isStaffView = !rolesLoading && !isCustomer;
+  const title = isStaffView ? t("returns.titleAll") : t("returns.title");
+  const subtitle = isStaffView ? t("returns.subtitleAll") : t("returns.subtitle");
 
   const columns: Column<ReturnRow>[] = [
     {
@@ -89,8 +100,8 @@ export function MyReturnsPage() {
   return (
     <section>
       <PageHeader
-        title={t("returns.title")}
-        subtitle={t("returns.subtitle")}
+        title={title}
+        subtitle={subtitle}
         actions={<ActionButton variant="icon" onClick={() => refetch()} title={t("common.refresh")} icon={<RefreshCw size={18} />} />}
       />
 

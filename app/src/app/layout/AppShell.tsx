@@ -28,7 +28,7 @@ export function AppShell({ activePath, children, onNavigate }: { activePath: str
   const isMobile = useIsMobile();
   const [collapsedPref, setCollapsedPref] = useState(() => localStorage.getItem(COLLAPSED_KEY) === "true");
   const { t } = useT();
-  const { hasRole } = useRoles();
+  const { hasRole, isCustomer, isLoading: rolesLoading } = useRoles();
   // On narrow screens the sidebar is always the icon-only rail below --
   // no separate hamburger/drawer/scrim needed, and no dead-end state where
   // nothing on screen can bring navigation back.
@@ -38,6 +38,11 @@ export function AppShell({ activePath, children, onNavigate }: { activePath: str
   // control that would come back as an opaque AUTH_NOT_AUTHENTICATED error.
   const visibleNavItems = navItems.filter((item) => !item.requiresRole || hasRole(item.requiresRole));
   const activeItem = visibleNavItems.find((item) => item.href === activePath);
+  // While roles are still loading, `isCustomer` reads false for everyone --
+  // treat that the same as "is a customer" here so the nav never flashes
+  // the staff wording at a customer before iam.me() resolves.
+  const isStaffView = !rolesLoading && !isCustomer;
+  const navLabel = (item: (typeof navItems)[number]) => (item.staffLabelKey && isStaffView ? item.staffLabelKey : item.labelKey);
 
   useEffect(() => {
     localStorage.setItem(COLLAPSED_KEY, String(collapsedPref));
@@ -72,7 +77,7 @@ export function AppShell({ activePath, children, onNavigate }: { activePath: str
             <a
               key={item.href}
               href={item.href}
-              data-tooltip={t(item.labelKey)}
+              data-tooltip={t(navLabel(item))}
               className={activePath === item.href ? "active" : ""}
               onClick={(event) => {
                 event.preventDefault();
@@ -80,7 +85,7 @@ export function AppShell({ activePath, children, onNavigate }: { activePath: str
               }}
             >
               <item.icon size={18} />
-              {collapsed ? null : <span>{t(item.labelKey)}</span>}
+              {collapsed ? null : <span>{t(navLabel(item))}</span>}
             </a>
           ))}
         </nav>
@@ -90,7 +95,7 @@ export function AppShell({ activePath, children, onNavigate }: { activePath: str
           {activeItem ? (
             <div className="breadcrumb">
               <activeItem.icon size={16} />
-              <span>{t(activeItem.labelKey)}</span>
+              <span>{t(navLabel(activeItem))}</span>
             </div>
           ) : null}
           <div className="topbar-spacer" />
