@@ -70,6 +70,26 @@ describe("computeInsights", () => {
   it("has no worst product when there are no returns", () => {
     expect(computeInsights(orders, []).worst).toBeUndefined();
   });
+
+  it("never loses rows: a missing area or courier lands in UNSPECIFIED, so every facet sums to the totals", () => {
+    const partialOrders = [
+      { orderNumber: "1", sku: "A", area: "Zone1", courier: "C1", unitPrice: 100 },
+      { orderNumber: "2", sku: "B", courier: "C1", unitPrice: 200 },
+      { orderNumber: "3", sku: "A", area: "Zone1", unitPrice: 100 }
+    ];
+    const partialCases = [
+      { orderNumber: "2", sku: "B", courier: "C1", unitPrice: 200 },
+      { orderNumber: "3", sku: "A", area: "Zone1", unitPrice: 100 }
+    ];
+    const { totals, byArea, byCourier, byProduct } = computeInsights(partialOrders, partialCases);
+    const sum = (facets: typeof byArea, key: "orders" | "returns") => facets.reduce((total, f) => total + f[key], 0);
+
+    expect(sum(byArea, "returns")).toBe(totals.returns);
+    expect(sum(byCourier, "returns")).toBe(totals.returns);
+    expect(sum(byProduct, "returns")).toBe(totals.returns);
+    expect(sum(byArea, "orders")).toBe(totals.orders);
+    expect(byArea.find((f) => f.key === "UNSPECIFIED")).toBeDefined();
+  });
 });
 
 describe("formatters", () => {

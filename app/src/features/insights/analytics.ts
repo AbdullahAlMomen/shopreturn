@@ -47,7 +47,11 @@ export type Insights = {
 // Ops confirm the reason before it counts, so confirmedReason wins; aiReason
 // stands in only for cases ops has not reviewed. A row with neither is kept
 // as UNCATEGORISED -- a bucket that silently loses rows would misstate every
-// ranking built on it.
+// ranking built on it. The same principle holds for every facet computed by
+// facet() below: a row missing its sku/area/courier lands in an explicit
+// UNSPECIFIED bucket -- UNCATEGORISED's product/area/courier counterpart --
+// rather than vanishing, so each facet's totals still add up to the
+// dataset's totals.
 function reasonOf(row: CaseRow): string {
   return row.confirmedReason || row.aiReason || "UNCATEGORISED";
 }
@@ -71,13 +75,14 @@ function facet(
   };
 
   for (const order of orders) {
-    const key = keyOf(order);
-    if (key) bucket(key, labelOf(order) || key).orders += 1;
+    // A missing key becomes UNSPECIFIED rather than being dropped -- see the
+    // comment above reasonOf.
+    const key = keyOf(order) || "UNSPECIFIED";
+    bucket(key, labelOf(order) || key).orders += 1;
   }
 
   for (const row of cases) {
-    const key = keyOf(row);
-    if (!key) continue;
+    const key = keyOf(row) || "UNSPECIFIED";
     const entry = bucket(key, labelOf(row) || key);
     entry.returns += 1;
     entry.takaImpact += row.unitPrice ?? 0;
