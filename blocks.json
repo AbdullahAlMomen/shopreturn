@@ -1,8 +1,8 @@
 {
   "project": {
-    "tenantId": "",
-    "apiUrl": "https://api.seliseblocks.com",
-    "appDomain": ""
+    "tenantId": "Df53833214f2a4243b696b55040b32509",
+    "apiUrl": "https://blocksapi.slsblx.com",
+    "appDomain": "https://dbzjdy.slsblx.com"
   },
   "data": {
     "schemas": "blocks/data/schemas",
