@@ -327,7 +327,7 @@
     {
       "schemaName": "ReturnCase",
       "policyName": "customer-creates-returns",
-      "policyDescription": "A customer may create a ReturnCase row to start a return request. Ownership of the new row is not policy-checked on insert (rightSource 0 against an inbound row is unverified); the writing client sets customerItemId.",
+      "policyDescription": "A customer may create a ReturnCase row to start a return request. RULE 1 (roles == customer) IS ENFORCED. RULE 2 (customerItemId == UserId) IS NOT ENFORCED AND IS A NO-OP: row-field rules (leftSource 1) are not evaluated on insert -- proved by customer B successfully inserting a row with customerItemId omitted entirely while this rule was deployed. It is kept only as a declaration of intent in case the platform starts honouring it. Ownership on insert is therefore enforced ONLY by application code, which must set customerItemId from iam.me(); a hand-crafted API call can still forge it. See ACCESS-NOTES.md section 11.",
       "policyType": 0,
       "operation": 1,
       "isAllowPolicy": true,
@@ -343,6 +343,13 @@
             "operator": 0,
             "rightSource": 2,
             "staticValue": "customer"
+          },
+          {
+            "leftSource": 1,
+            "leftOperand": "customerItemId",
+            "operator": 0,
+            "rightSource": 0,
+            "rightOperand": "UserId"
           }
         ]
       }
@@ -402,6 +409,29 @@
             "operator": 0,
             "rightSource": 2,
             "staticValue": "manager"
+          }
+        ]
+      }
+    },
+    {
+      "schemaName": "ReturnCase",
+      "policyName": "ops-deletes-returns",
+      "policyDescription": "Ops staff may delete a ReturnCase row. Added after a probe created a forged row that no role could remove; without this the project has no way to retract bad data. Deliberately NOT granted on ReturnTimeline, which is append-only.",
+      "policyType": 0,
+      "operation": 3,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": {
+        "logicalOperator": 0,
+        "nestedGroups": [],
+        "rules": [
+          {
+            "leftSource": 0,
+            "leftOperand": "roles",
+            "operator": 0,
+            "rightSource": 2,
+            "staticValue": "ops"
           }
         ]
       }
@@ -605,6 +635,29 @@
       }
     },
     {
+      "schemaName": "Inspection",
+      "policyName": "ops-deletes-inspections",
+      "policyDescription": "Ops staff may delete an Inspection row they raised in error. Inspections are ops' own working record, so ops owns their correction.",
+      "policyType": 0,
+      "operation": 3,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": {
+        "logicalOperator": 0,
+        "nestedGroups": [],
+        "rules": [
+          {
+            "leftSource": 0,
+            "leftOperand": "roles",
+            "operator": 0,
+            "rightSource": 2,
+            "staticValue": "ops"
+          }
+        ]
+      }
+    },
+    {
       "schemaName": "Refund",
       "policyName": "customer-reads-own-refunds",
       "policyDescription": "A customer may read only Refund rows they own. A Refund row exists only once the refund is paid, so 'terminal only' is structural rather than a status test.",
@@ -686,6 +739,29 @@
       "policyDescription": "Ops staff may create Refund rows when a refund is paid out.",
       "policyType": 0,
       "operation": 1,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": {
+        "logicalOperator": 0,
+        "nestedGroups": [],
+        "rules": [
+          {
+            "leftSource": 0,
+            "leftOperand": "roles",
+            "operator": 0,
+            "rightSource": 2,
+            "staticValue": "ops"
+          }
+        ]
+      }
+    },
+    {
+      "schemaName": "Refund",
+      "policyName": "ops-deletes-refunds",
+      "policyDescription": "Ops staff may delete a Refund row entered in error. The customer-visible account of what happened lives in ReturnTimeline, which stays append-only.",
+      "policyType": 0,
+      "operation": 3,
       "isAllowPolicy": true,
       "priority": 20,
       "fieldNames": [],

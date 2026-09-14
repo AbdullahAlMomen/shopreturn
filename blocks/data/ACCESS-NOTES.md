@@ -200,21 +200,48 @@ collection as each of the four users:
 Two properties are enforced by the **absence** of a policy, not by a rule:
 
 - **`ReturnTimeline` is append-only.** No role holds an edit or delete policy on it.
-  Assertion 6 (`ops` updates a timeline row) is denied with `401` for this reason.
+  Assertion 6 (`ops` updates a timeline row) and assertion 8 (`ops` deletes one) are
+  both denied with `401` for this reason.
 - **`Inspection` is invisible to customers.** No customer policy exists on it, so
   there is nothing to mask.
 
-`Order`, `PatternAlert` and `Decision` carry no write policy for `ops`, and nothing
-carries a delete policy for anyone.
+`Order`, `PatternAlert` and `Decision` carry no write policy for `ops`.
+
+### Delete grants
+
+`ops` holds delete on **`ReturnCase`, `Inspection` and `Refund` only**
+(`ops-deletes-returns`, `ops-deletes-inspections`, `ops-deletes-refunds`; each a
+single `roles == "ops"` rule at `operation: 3`). No other role holds delete on
+anything, and no role holds delete on any other schema. The `security[]` entries
+already had `operation: 3` at `accessLevel: 3` on every schema, so only the policies
+were missing.
+
+These were added because "no role can delete anything" turned out to be an
+operational dead end rather than a safe default. The assertion-7 probe created a
+forged `ReturnCase` and **no identity in the project could remove it** — customer,
+`ops` and `manager` all got `401`, hard delete and soft delete alike, and the CLI has
+no data-row delete command (`blocks data …` deletes schemas, policies, validations
+and files, never a gateway row). The row had to be neutralised in place with an
+`ops` edit (owner repointed to a zero uuid, status `VOID`) and was only actually
+deleted once `ops-deletes-returns` was deployed. A project with no way to retract
+bad data cannot be operated.
+
+**`ReturnTimeline` is deliberately excluded, and must stay excluded.** It is the
+spec's core trust guarantee — "a permanent, visible log of exactly what the customer
+was told". A correction to the timeline is a new entry, never a removal; a deletable
+audit log is not an audit log. `Order`, `PatternAlert` and `Decision` are excluded
+because nothing needs to delete them. Assertion 8 exists specifically to keep the
+`ReturnTimeline` exclusion honest: granting `ops` delete anywhere made "can `ops`
+delete a timeline row?" a reachable question, and an untested guarantee is the exact
+failure mode this suite exists to prevent. It reads the row back after the attempt,
+so a denial that nonetheless removed the row would still be recorded as a failure.
 
 ## 10. Still unknown
 
-- **Whether a row-field rule (`leftSource: 1`) is evaluated against an inbound row on
-  write/edit.** `customer-creates-returns` therefore checks only the role, and the
-  writing client is responsible for setting `customerItemId` correctly. A customer
-  could currently insert a `ReturnCase` naming someone else as owner. Closing this
-  needs either a probe of `leftSource: 1` on `operation: 1`, or server-side stamping
-  of `customerItemId` from the token.
+- Whether a row-field rule is evaluated on **edit** (`operation: 2`). Insert is now
+  answered — see §11 — but the same question on edit is untested. Assume nothing:
+  `ops-edits-all-returns` carries only a role rule, so no shipped policy depends on
+  the answer.
 - `operator` values `2` and above, and `ruleGroup.nestedGroups` — unprobed. Every
   shipped rule needs only `0`/`1` and a flat rule list.
 - `rightOperands` (plural) on a rule — present on read-back, always `[]`, never
@@ -230,3 +257,74 @@ carries a delete policy for anyone.
   fresh ones requires either temporarily relaxing those schemas or a service
   identity. This is deliberate: the matrix is the spec, and it was not widened to
   keep a fixture script convenient.
+
+## 11. Row-field rules are NOT evaluated on insert
+
+This was §10's first open question. It is now answered, and the answer is the
+unwelcome one.
+
+**On `operation: 1` (insert) the policy engine evaluates claim rules
+(`leftSource: 0`) and ignores row-field rules (`leftSource: 1`) entirely.** A
+row-field rule on an insert policy is a silent no-op: it deploys clean, reads back
+intact, and enforces nothing.
+
+Three observations, all taken with `customer-creates-returns` carrying
+`roles == "customer"` AND `customerItemId == UserId` (`logicalOperator: 0`), deployed
+and gateway-reloaded — the same two-rule shape that demonstrably works on the read
+side in `customer-reads-own-returns`:
+
+1. **Customer B inserted a `ReturnCase` with `customerItemId` set to customer A's
+   id.** `200`, `acknowledged: true`, a real `itemId`. The row then appeared in
+   customer A's own `ReturnCase` list, served to the victim by
+   `customer-reads-own-returns` — the read side faithfully honours an ownership
+   field the write side never checked. This is assertion 7, and it still fails.
+2. **Customer B inserted a `ReturnCase` with `customerItemId` omitted entirely.**
+   Also allowed. A field that is absent cannot equal B's `UserId` claim, so the rule
+   cannot have been evaluated at all. This is the decisive observation.
+3. **`ops` was denied (`401`) inserting a `ReturnCase`.** The only insert policy on
+   the schema is `customer-creates-returns`, whose first rule is
+   `roles == "customer"`. So this policy's `ruleGroup` *is* read and evaluated on
+   insert — the engine runs, the role half bites, and only the row-field half is
+   inert. This rules out "policies are skipped entirely on insert" as an explanation.
+
+The likely mechanism: row-level security is applied as a **filter over existing
+rows**. Read, edit and delete all have rows to filter. An insert has no row yet, so
+there is nothing for a `leftSource: 1` predicate to attach to, and it is dropped
+rather than evaluated as a check against the inbound document. No "WITH CHECK"
+equivalent is exposed.
+
+### What this means for ShopReturn
+
+**Ownership on insert cannot be enforced in `rules.json`.** The rule is left deployed
+on `customer-creates-returns` as a declaration of intent, with its
+`policyDescription` stating in full that it is a no-op — do not read its presence as
+protection.
+
+Enforcement therefore falls to application code: **the portal must always set
+`customerItemId` from `iam.me()` and never from client input.** That is strictly
+weaker than a policy. It protects the app's own users; it does **not** protect
+against a hand-crafted API call carrying a valid customer token, which can still
+create a `ReturnCase` owned by any customer. Anyone relying on this boundary must be
+told so plainly rather than discovering it later.
+
+Options that would actually close it, none of them a `rules.json` change:
+
+- server-side stamping of `customerItemId` from the token in the data gateway (not
+  exposed by the CLI or the API as far as probed);
+- routing all customer inserts through a service identity or backend endpoint that
+  sets the owner, and removing `customer-creates-returns` altogether;
+- a scheduled reconciliation flagging `ReturnCase` rows whose `customerItemId` does
+  not match their creator (detective, not preventive).
+
+**Assertion 7 is left failing on purpose.** The suite stands at 7/8. That is an
+accurate statement of the boundary, and it should turn green only when the hole is
+genuinely closed — never by weakening the assertion.
+
+### Related: the assertion-7 cleanup path
+
+Because the probe row is real, assertion 7 deletes it on failure. It deletes as
+**`ops`**, not as customer B — the first version tried customer B first, which no
+delete grant covers, so forged rows accumulated one per failing run. With
+`ops-deletes-returns` deployed the cleanup works and a full run now leaves the
+fixture set exactly as it found it: verified afterwards at one row in every
+collection, with all six ids in `fixture-ids.json` still present.

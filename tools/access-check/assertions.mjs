@@ -1,4 +1,4 @@
-// Six access-control assertions proving (or, right now, disproving) the
+// Eight access-control assertions proving (or, right now, disproving) the
 // ShopReturn access boundary.
 //
 // At this commit no data access policies are deployed and all seven schemas
@@ -11,6 +11,19 @@
 //
 // A later task deploys the real policies and is expected to turn this exact
 // suite green with no changes to the assertions themselves.
+//
+// Assertions 1-6 cover the READ side and are green against the deployed
+// policy set. Assertion 7 was appended later to probe the WRITE side: it
+// asks whether a row-field rule is evaluated against an inbound row on
+// insert, which `blocks/data/ACCESS-NOTES.md` §10 records as unverified.
+// It is expected to FAIL until `customer-creates-returns` carries an
+// ownership rule -- that failure is the evidence the hole is real.
+//
+// Assertion 8 was appended alongside the `ops` delete grants on `ReturnCase`,
+// `Inspection` and `Refund`. Assertion 6 shows `ops` cannot UPDATE a
+// `ReturnTimeline` row; granting `ops` delete anywhere makes "can `ops`
+// DELETE one?" a reachable question, and append-only is the spec's core trust
+// guarantee. It runs last because a regression there destroys a fixture.
 //
 // "Denied" has two shapes and both count as a pass here:
 //   - a thrown error (schema-level denial, typically a non-2xx response or
@@ -27,6 +40,8 @@ const fixtureIds = JSON.parse(
   await readFile(new URL("./fixture-ids.json", import.meta.url), "utf8")
 );
 const { returnCaseItemId, timelineItemId } = fixtureIds;
+// Added for assertion 7: the owner customer B will try to forge onto a row.
+const { customerAItemId } = fixtureIds;
 
 const SEEDED_AI_REASON = "DAMAGED_IN_TRANSIT"; // set by seed.mjs; see file header there.
 
@@ -85,6 +100,37 @@ function classifyDeniedOrEmpty(n, label, result, listField) {
   } else {
     record(n, label, false, `allowed -- returned ${items.length} row(s): ${JSON.stringify(items)}`);
   }
+}
+
+// Cleanup for assertion 7. If the forged row is actually created the probe
+// has left debris in the fixture set, which would corrupt every later run of
+// this suite, so it is removed immediately.
+//
+// It deletes as **ops**, never as customer B. The first version of this helper
+// tried customer B first; the policy set grants no customer any delete, so it
+// was denied every time and forged rows accumulated, one per failing run.
+// `ops-deletes-returns` is the grant that actually works. With the ownership
+// rule on `customer-creates-returns` deployed this path should never be
+// reached at all -- it exists so that the day it is, it works.
+async function deleteForgedReturnCase(itemId, clients) {
+  const notes = [];
+  for (const [who, blocks] of clients) {
+    const result = await attempt(() => blocks.data.collection("ReturnCase").delete(itemId, { hardDelete: true }));
+    if (result.outcome === "threw" || result.outcome === "graphql-error") {
+      notes.push(`delete as ${who} denied(threw: ${result.message})`);
+      continue;
+    }
+    const payload = result.response?.data?.deleteReturnCase;
+    const acknowledged = payload?.acknowledged;
+    const impacted = payload?.totalImpactedData;
+    if (acknowledged === false || impacted === 0) {
+      notes.push(`delete as ${who} denied(empty) -- acknowledged=${acknowledged} totalImpactedData=${impacted}`);
+      continue;
+    }
+    notes.push(`DELETED as ${who} (acknowledged=${acknowledged}, totalImpactedData=${impacted})`);
+    return { deleted: true, notes };
+  }
+  return { deleted: false, notes };
 }
 
 async function main() {
@@ -238,9 +284,122 @@ async function main() {
     }
   }
 
+  // 7. Customer B creates a ReturnCase naming customer A as its owner
+  // (`customerItemId` = customerAItemId). This is the write-side twin of
+  // assertion 1: assertion 1 proves B cannot READ A's row, this one asks
+  // whether B can MANUFACTURE a row that belongs to A. The deployed
+  // `customer-creates-returns` policy checks only the caller's role, so
+  // this is expected to be allowed -- i.e. to FAIL -- until a row-field
+  // rule on `customerItemId` is added and proven to be evaluated on insert.
+  //
+  // Passes on either denial shape; fails if the row is created. On failure
+  // the forged row is deleted immediately (see deleteForgedReturnCase) and
+  // the outcome of that cleanup is printed with the FAIL line.
+  {
+    const result = await attempt(() =>
+      blocksB.data.collection("ReturnCase").create({
+        customerItemId: customerAItemId,
+        orderNumber: "10-9999",
+        sku: "SH-022",
+        status: "SUBMITTED",
+        rawCustomerText: "forgery probe"
+      })
+    );
+    const label = "customerB creates a ReturnCase owned by customerA";
+    if (result.outcome === "threw" || result.outcome === "graphql-error") {
+      record(7, label, true, `denied(threw: ${result.message})`);
+    } else {
+      const payload = result.response?.data?.insertReturnCase;
+      const itemId = payload?.itemId;
+      const acknowledged = payload?.acknowledged;
+      if (!itemId || acknowledged === false) {
+        record(
+          7,
+          label,
+          true,
+          `denied(empty) -- acknowledged=${acknowledged} itemId=${itemId}`
+        );
+      } else {
+        // Deleted as ops, never as customer B: no customer holds a delete
+        // grant, so the old customer-B-first attempt could only ever fail and
+        // leave the forged row behind. See deleteForgedReturnCase.
+        const cleanup = await deleteForgedReturnCase(itemId, [["ops", blocksOps]]);
+        record(
+          7,
+          label,
+          false,
+          `allowed -- forged row created (itemId=${itemId}); cleanup: ${
+            cleanup.deleted ? "row removed" : "ROW STILL PRESENT -- remove it by hand"
+          } [${cleanup.notes.join(" | ")}]`
+        );
+      }
+    }
+  }
+
+  // 8. Ops deletes the seeded ReturnTimeline row. Must be DENIED.
+  //
+  // ReturnTimeline is append-only by design -- "a permanent, visible log of
+  // exactly what the customer was told". A correction is a new entry, never a
+  // removal. Assertion 6 covers the update half of that; this covers delete,
+  // which became a live risk the moment `ops` was granted delete on
+  // ReturnCase, Inspection and Refund. The guarantee is enforced by the
+  // ABSENCE of a delete policy on this schema (ACCESS-NOTES.md §9), so the
+  // expected shape is a 401, not a row filter.
+  //
+  // Deliberately last in the file: if it ever wrongly passes through, it
+  // destroys the timeline fixture every later run depends on. The read-back
+  // below fails the assertion if the row is gone even when the delete call
+  // itself looked denied.
+  {
+    const label = "ops deletes the seeded ReturnTimeline row";
+    const result = await attempt(() =>
+      blocksOps.data.collection("ReturnTimeline").delete(timelineItemId)
+    );
+
+    let denied;
+    let detail;
+    if (result.outcome === "threw" || result.outcome === "graphql-error") {
+      denied = true;
+      detail = `denied(threw: ${result.message})`;
+    } else {
+      const payload = result.response?.data?.deleteReturnTimeline;
+      const acknowledged = payload?.acknowledged;
+      const impacted = payload?.totalImpactedData;
+      if (acknowledged === false || impacted === 0) {
+        denied = true;
+        detail = `denied(empty) -- acknowledged=${acknowledged} totalImpactedData=${impacted}`;
+      } else {
+        denied = false;
+        detail = `allowed -- delete succeeded (acknowledged=${acknowledged}, totalImpactedData=${impacted})`;
+      }
+    }
+
+    // Confirm the fixture survived, whatever the delete call claimed. A
+    // denial that still removed the row would be the worst possible outcome
+    // and must not be recorded as a pass.
+    const readBack = await attempt(() =>
+      blocksOps.data.collection("ReturnTimeline").get(timelineItemId, { fields: ["ItemId"] })
+    );
+    const stillThere =
+      readBack.outcome === "ok" && itemsOf(readBack.response, "getReturnTimelines").length > 0;
+
+    if (denied && stillThere) {
+      record(8, label, true, `${detail}; fixture row still present`);
+    } else if (denied && !stillThere) {
+      record(
+        8,
+        label,
+        false,
+        `${detail} BUT THE FIXTURE ROW IS GONE -- reseed before trusting any later run`
+      );
+    } else {
+      record(8, label, false, `${detail} -- APPEND-ONLY GUARANTEE BROKEN; the timeline fixture was destroyed`);
+    }
+  }
+
   const passing = results.filter(Boolean).length;
-  console.log(`${passing}/6 passing`);
-  process.exit(passing === 6 ? 0 : 1);
+  console.log(`${passing}/8 passing`);
+  process.exit(passing === 8 ? 0 : 1);
 }
 
 main().catch((error) => {
