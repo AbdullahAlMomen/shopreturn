@@ -121,7 +121,7 @@ export function NewReturnPage() {
     return (
       <section>
         <a
-          className="ledger-back"
+          className="case-back"
           href="/returns"
           onClick={(event) => {
             event.preventDefault();
@@ -141,7 +141,7 @@ export function NewReturnPage() {
   return (
     <section>
       <a
-        className="ledger-back"
+        className="case-back"
         href="/returns"
         onClick={(event) => {
           event.preventDefault();
@@ -151,23 +151,23 @@ export function NewReturnPage() {
         <ArrowLeft size={14} /> {t("returns.detail.back")}
       </a>
 
-      <div className="ledger-page">
+      <div className="case-page">
         <header>
-          <h1 className="ledger-order">{t("returns.new.title")}</h1>
-          <p className="ledger-subtitle">{t("returns.new.subtitle")}</p>
+          <h1 className="case-title">{t("returns.new.title")}</h1>
+          <p className="case-subtitle">{t("returns.new.subtitle")}</p>
         </header>
 
         {result ? (
-          <div className="ledger-success-panel">
+          <div className="result-panel">
             <h2>{t("returns.new.photoWarningTitle")}</h2>
-            <p className="ledger-hint">{t("returns.new.photoWarningBody")}</p>
-            <ul className="ledger-photo-failures">
+            <p className="field-hint">{t("returns.new.photoWarningBody")}</p>
+            <ul className="photo-failures">
               {result.photoFailures.map((failure) => (
                 <li key={failure}>{failure}</li>
               ))}
             </ul>
-            <div className="ledger-form-actions">
-              <button type="button" className="ledger-submit" onClick={() => goToReturn(result.itemId)}>
+            <div className="form-actions">
+              <button type="button" className="primary-button" onClick={() => goToReturn(result.itemId)}>
                 {t("returns.new.viewReturn")}
               </button>
             </div>
@@ -186,9 +186,9 @@ export function NewReturnPage() {
             description={t("returns.new.noEligibleOrders.description")}
           />
         ) : (
-          <form className="ledger-form" onSubmit={onSubmit}>
-            <div className="ledger-field">
-              <label className="ledger-field-label" htmlFor="order-select">{t("returns.new.orderNumberLabel")}</label>
+          <form className="stack-form" onSubmit={onSubmit}>
+            <div className="field">
+              <label className="field-label" htmlFor="order-select">{t("returns.new.orderNumberLabel")}</label>
               <select
                 id="order-select"
                 value={selectedOrderNumber}
@@ -204,8 +204,8 @@ export function NewReturnPage() {
               </select>
             </div>
 
-            <div className="ledger-field">
-              <label className="ledger-field-label" htmlFor="description">{t("returns.new.descriptionLabel")}</label>
+            <div className="field">
+              <label className="field-label" htmlFor="description">{t("returns.new.descriptionLabel")}</label>
               <textarea
                 id="description"
                 placeholder={t("returns.new.descriptionHint")}
@@ -213,20 +213,20 @@ export function NewReturnPage() {
                 onChange={(event) => setDescription(event.target.value)}
                 disabled={submitting}
               />
-              <span className="ledger-hint">{t("returns.new.descriptionHint")}</span>
+              <span className="field-hint">{t("returns.new.descriptionHint")}</span>
             </div>
 
-            <div className="ledger-field">
-              <span className="ledger-field-label">{t("returns.new.photosLabel")}</span>
-              <span className="ledger-hint">{t("returns.new.photosHint")}</span>
-              <label className="ledger-photo-input-label">
+            <div className="field">
+              <span className="field-label">{t("returns.new.photosLabel")}</span>
+              <span className="field-hint">{t("returns.new.photosHint")}</span>
+              <label className="photo-input-label">
                 <Paperclip size={14} /> {t("returns.new.addPhotos")}
                 <input type="file" accept="image/*" multiple onChange={onPhotosSelected} disabled={submitting} />
               </label>
               {photos.length > 0 ? (
-                <div className="ledger-photo-list">
+                <div className="photo-list">
                   {photos.map((photo, index) => (
-                    <span className="ledger-photo-chip" key={`${photo.name}-${index}`}>
+                    <span className="photo-chip" key={`${photo.name}-${index}`}>
                       {photo.name}
                       <button type="button" onClick={() => removePhoto(index)} disabled={submitting} aria-label={t("returns.new.removePhoto").replace("{name}", photo.name)}>
                         <X size={12} />
@@ -237,11 +237,11 @@ export function NewReturnPage() {
               ) : null}
             </div>
 
-            {validationError ? <p className="ledger-form-error">{validationError}</p> : null}
-            {errorMessage() ? <p className="ledger-form-error">{errorMessage()}</p> : null}
+            {validationError ? <p className="form-error">{validationError}</p> : null}
+            {errorMessage() ? <p className="form-error">{errorMessage()}</p> : null}
 
-            <div className="ledger-form-actions">
-              <button type="submit" className="ledger-submit" disabled={submitting}>
+            <div className="form-actions">
+              <button type="submit" className="primary-button" disabled={submitting}>
                 {submitting ? t("returns.new.submitting") : t("returns.new.submit")}
               </button>
             </div>

@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 import { EmptyState } from "../../shared/ui/EmptyState";
 import { ErrorState } from "../../shared/ui/ErrorState";
 import { Skeleton } from "../../shared/ui/Skeleton";
+import { StatusPill } from "../../shared/ui/StatusPill";
 import { useT } from "../../lib/i18n/LocalizationProvider";
 import type { TranslationKey } from "../../lib/i18n/dictionary";
 import { useRoles } from "../../lib/blocks/useRoles";
@@ -107,10 +108,10 @@ function StageBanner({
   title: string; body: string; retryLabel: string; retryingLabel: string; submitting: boolean; onRetry: () => void;
 }) {
   return (
-    <div className="ledger-notify-banner">
-      <p className="ledger-notify-banner-title">{title}</p>
+    <div className="alert-card">
+      <p className="alert-sentence">{title}</p>
       <p>{body}</p>
-      <button type="button" className="ledger-submit ledger-submit-warn" onClick={onRetry} disabled={submitting}>
+      <button type="button" className="primary-button danger" onClick={onRetry} disabled={submitting}>
         {submitting ? retryingLabel : retryLabel}
       </button>
     </div>
@@ -120,13 +121,13 @@ function StageBanner({
 function TimelineHistory({ timeline, t }: { timeline: TimelineEntry[]; t: Translate }) {
   if (timeline.length === 0) return null;
   return (
-    <div className="ledger-case-section">
-      <p className="ledger-label">{t("ops.case.timelineLabel")}</p>
-      <div className="ledger-rows">
+    <div className="case-section">
+      <p className="case-label">{t("ops.case.timelineLabel")}</p>
+      <div className="case-rows">
         {timeline.map((entry) => (
-          <div key={entry.ItemId} className="ledger-row" data-customer-visible={String(entry.isCustomerVisible ?? true)}>
-            <div className="ledger-when">{formatWhen(entry.at ?? entry.CreatedDate)}</div>
-            <div className="ledger-message">
+          <div key={entry.ItemId} className="case-row" data-customer-visible={String(entry.isCustomerVisible ?? true)}>
+            <div className="case-when">{formatWhen(entry.at ?? entry.CreatedDate)}</div>
+            <div className="case-message">
               <p>
                 <strong>{entry.status}</strong> &middot; {entry.message}
                 {entry.isCustomerVisible === false ? ` (${t("ops.case.internalOnly")})` : ""}
@@ -332,7 +333,7 @@ export function OpsReviewPage() {
   return (
     <section>
       <a
-        className="ledger-back"
+        className="case-back"
         href="/ops"
         onClick={(event) => {
           event.preventDefault();
@@ -353,23 +354,23 @@ export function OpsReviewPage() {
       ) : !returnCase ? (
         <EmptyState title={t("ops.review.notFound.title")} description={t("ops.review.notFound.description")} />
       ) : (
-        <div className="ledger-page">
-          <header className="ledger-header">
-            <h1 className="ledger-order">
+        <div className="case-page">
+          <header className="case-header">
+            <h1 className="case-title">
               {t("returns.detail.orderPrefix")}
               {returnCase.orderNumber || t("returns.unknownOrder")}
             </h1>
-            <span className="ledger-status ledger-status-neutral">{returnCase.status || t("returns.status.unknown")}</span>
+            <StatusPill tone="neutral">{returnCase.status || t("returns.status.unknown")}</StatusPill>
           </header>
 
           {returnCase.rawCustomerText ? (
-            <blockquote className="ledger-quote">{returnCase.rawCustomerText}</blockquote>
+            <blockquote className="case-quote">{returnCase.rawCustomerText}</blockquote>
           ) : null}
 
           <TimelineHistory timeline={timeline} t={t} />
 
           {pendingNotify ? (
-            <div className="ledger-case-section">
+            <div className="case-section">
               <StageBanner
                 title={t("ops.review.notifyFailed.title")}
                 body={t("ops.review.notifyFailed.body").replace("{status}", pendingNotify.status)}
@@ -381,11 +382,11 @@ export function OpsReviewPage() {
             </div>
           ) : isAwaitingDecision ? (
             <>
-              <p className="ledger-sentence">
+              <p className="review-sentence">
                 {t("ops.review.sentence.prefix")}{" "}
-                <span className="ledger-select-wrap">
+                <span className="review-select-wrap">
                   <select
-                    className="ledger-inline-select"
+                    className="review-inline-select"
                     value={reason}
                     onChange={(event) => setReason(event.target.value)}
                     disabled={submitting || rejecting}
@@ -396,9 +397,9 @@ export function OpsReviewPage() {
                   </select>
                 </span>{" "}
                 {t("ops.review.sentence.itemIs")}{" "}
-                <span className="ledger-select-wrap">
+                <span className="review-select-wrap">
                   <select
-                    className="ledger-inline-select"
+                    className="review-inline-select"
                     value={restockable ? "yes" : "no"}
                     onChange={(event) => setRestockable(event.target.value === "yes")}
                     disabled={submitting || rejecting}
@@ -408,9 +409,9 @@ export function OpsReviewPage() {
                   </select>
                 </span>{" "}
                 {t("ops.review.sentence.courierJoin")}{" "}
-                <span className="ledger-select-wrap">
+                <span className="review-select-wrap">
                   <select
-                    className="ledger-inline-select"
+                    className="review-inline-select"
                     value={courierClaim ? "yes" : "no"}
                     onChange={(event) => setCourierClaim(event.target.value === "yes")}
                     disabled={submitting || rejecting}
@@ -421,61 +422,61 @@ export function OpsReviewPage() {
                 </span>.
               </p>
               {formatConfidence(returnCase.aiConfidence) ? (
-                <p className="ledger-confidence">
+                <p className="review-confidence">
                   {t("ops.review.confidenceLabel")} {formatConfidence(returnCase.aiConfidence)}
-                  <span className="ledger-confidence-raw"> ({returnCase.aiConfidence?.toFixed(2)})</span>
+                  <span className="review-confidence-raw"> ({returnCase.aiConfidence?.toFixed(2)})</span>
                 </p>
               ) : null}
 
               {!rejecting ? (
-                <form className="ledger-form" onSubmit={onAccept}>
-                  <div className="ledger-field">
-                    <label className="ledger-field-label" htmlFor="ops-message">{t("ops.review.messageLabel")}</label>
+                <form className="stack-form" onSubmit={onAccept}>
+                  <div className="field">
+                    <label className="field-label" htmlFor="ops-message">{t("ops.review.messageLabel")}</label>
                     <textarea
                       id="ops-message"
                       value={message}
                       onChange={(event) => setMessage(event.target.value)}
                       disabled={submitting}
                     />
-                    <span className="ledger-hint">{t("ops.review.messageHint")}</span>
+                    <span className="field-hint">{t("ops.review.messageHint")}</span>
                   </div>
 
-                  {submitStage === "update-failed" ? <p className="ledger-form-error">{t("ops.review.updateFailed")}</p> : null}
+                  {submitStage === "update-failed" ? <p className="form-error">{t("ops.review.updateFailed")}</p> : null}
 
-                  <div className="ledger-form-actions">
+                  <div className="form-actions">
                     <button
                       type="button"
-                      className="ledger-submit ledger-submit-secondary"
+                      className="secondary-button"
                       onClick={() => setRejecting(true)}
                       disabled={submitting}
                     >
                       {t("ops.review.rejectToggle")}
                     </button>
-                    <button type="submit" className="ledger-submit" disabled={submitting}>
+                    <button type="submit" className="primary-button" disabled={submitting}>
                       {submitting ? t("ops.review.accepting") : t("ops.review.accept")}
                     </button>
                   </div>
                 </form>
               ) : (
-                <form className="ledger-form" onSubmit={onReject}>
-                  <div className="ledger-field">
-                    <label className="ledger-field-label" htmlFor="ops-rejection-reason">{t("ops.review.rejectReasonLabel")}</label>
+                <form className="stack-form" onSubmit={onReject}>
+                  <div className="field">
+                    <label className="field-label" htmlFor="ops-rejection-reason">{t("ops.review.rejectReasonLabel")}</label>
                     <textarea
                       id="ops-rejection-reason"
                       value={rejectionReason}
                       onChange={(event) => setRejectionReason(event.target.value)}
                       disabled={submitting}
                     />
-                    <span className="ledger-hint">{t("ops.review.rejectReasonHint")}</span>
+                    <span className="field-hint">{t("ops.review.rejectReasonHint")}</span>
                   </div>
 
-                  {rejectionValidationError ? <p className="ledger-form-error">{rejectionValidationError}</p> : null}
-                  {submitStage === "update-failed" ? <p className="ledger-form-error">{t("ops.review.updateFailed")}</p> : null}
+                  {rejectionValidationError ? <p className="form-error">{rejectionValidationError}</p> : null}
+                  {submitStage === "update-failed" ? <p className="form-error">{t("ops.review.updateFailed")}</p> : null}
 
-                  <div className="ledger-form-actions">
+                  <div className="form-actions">
                     <button
                       type="button"
-                      className="ledger-submit ledger-submit-secondary"
+                      className="secondary-button"
                       onClick={() => {
                         setRejecting(false);
                         setRejectionValidationError(undefined);
@@ -484,7 +485,7 @@ export function OpsReviewPage() {
                     >
                       {t("ops.review.rejectCancel")}
                     </button>
-                    <button type="submit" className="ledger-submit ledger-submit-warn" disabled={submitting}>
+                    <button type="submit" className="primary-button danger" disabled={submitting}>
                       {submitting ? t("ops.review.rejecting") : t("ops.review.reject")}
                     </button>
                   </div>
@@ -492,10 +493,10 @@ export function OpsReviewPage() {
               )}
             </>
           ) : status === "ACCEPTED" ? (
-            <form className="ledger-form ledger-case-section" onSubmit={onMarkReceived}>
-              <p className="ledger-case-title">{t("ops.case.markReceived.title")}</p>
-              <div className="ledger-field">
-                <label className="ledger-field-label" htmlFor="ops-received-message">{t("ops.review.messageLabel")}</label>
+            <form className="stack-form case-section" onSubmit={onMarkReceived}>
+              <p className="case-section-title">{t("ops.case.markReceived.title")}</p>
+              <div className="field">
+                <label className="field-label" htmlFor="ops-received-message">{t("ops.review.messageLabel")}</label>
                 <textarea
                   id="ops-received-message"
                   value={receivedMessage}
@@ -503,16 +504,16 @@ export function OpsReviewPage() {
                   disabled={submitting}
                 />
               </div>
-              {submitStage === "update-failed" ? <p className="ledger-form-error">{t("ops.review.updateFailed")}</p> : null}
-              <div className="ledger-form-actions">
-                <button type="submit" className="ledger-submit" disabled={submitting}>
+              {submitStage === "update-failed" ? <p className="form-error">{t("ops.review.updateFailed")}</p> : null}
+              <div className="form-actions">
+                <button type="submit" className="primary-button" disabled={submitting}>
                   {submitting ? t("ops.case.markReceived.confirming") : t("ops.case.markReceived.confirm")}
                 </button>
               </div>
             </form>
           ) : status === "RECEIVED" ? (
             inspection.stage === "update-failed" ? (
-              <div className="ledger-case-section">
+              <div className="case-section">
                 <StageBanner
                   title={t("ops.case.updateFailed.title")}
                   body={t("ops.case.updateFailed.body")}
@@ -523,7 +524,7 @@ export function OpsReviewPage() {
                 />
               </div>
             ) : inspection.stage === "notify-failed" ? (
-              <div className="ledger-case-section">
+              <div className="case-section">
                 <StageBanner
                   title={t("ops.review.notifyFailed.title")}
                   body={t("ops.review.notifyFailed.body").replace("{status}", "INSPECTED")}
@@ -534,11 +535,11 @@ export function OpsReviewPage() {
                 />
               </div>
             ) : (
-              <form className="ledger-form ledger-case-section" onSubmit={onRecordInspection}>
-                <p className="ledger-case-title">{t("ops.case.inspection.title")}</p>
+              <form className="stack-form case-section" onSubmit={onRecordInspection}>
+                <p className="case-section-title">{t("ops.case.inspection.title")}</p>
 
-                <div className="ledger-field">
-                  <label className="ledger-field-label" htmlFor="ops-condition">{t("ops.case.inspection.conditionLabel")}</label>
+                <div className="field">
+                  <label className="field-label" htmlFor="ops-condition">{t("ops.case.inspection.conditionLabel")}</label>
                   <select
                     id="ops-condition"
                     value={condition}
@@ -551,8 +552,8 @@ export function OpsReviewPage() {
                   </select>
                 </div>
 
-                <div className="ledger-field">
-                  <label className="ledger-field-label" htmlFor="ops-insp-restockable">{t("ops.case.inspection.restockableLabel")}</label>
+                <div className="field">
+                  <label className="field-label" htmlFor="ops-insp-restockable">{t("ops.case.inspection.restockableLabel")}</label>
                   <select
                     id="ops-insp-restockable"
                     value={inspRestockable ? "yes" : "no"}
@@ -564,8 +565,8 @@ export function OpsReviewPage() {
                   </select>
                 </div>
 
-                <div className="ledger-field">
-                  <label className="ledger-field-label" htmlFor="ops-fault">{t("ops.case.inspection.faultLabel")}</label>
+                <div className="field">
+                  <label className="field-label" htmlFor="ops-fault">{t("ops.case.inspection.faultLabel")}</label>
                   <select
                     id="ops-fault"
                     value={fault}
@@ -578,19 +579,19 @@ export function OpsReviewPage() {
                   </select>
                 </div>
 
-                <div className="ledger-field">
-                  <label className="ledger-field-label" htmlFor="ops-insp-notes">{t("ops.case.inspection.notesLabel")}</label>
+                <div className="field">
+                  <label className="field-label" htmlFor="ops-insp-notes">{t("ops.case.inspection.notesLabel")}</label>
                   <textarea
                     id="ops-insp-notes"
                     value={inspectorNotes}
                     onChange={(event) => setInspectorNotes(event.target.value)}
                     disabled={inspection.submitting}
                   />
-                  <span className="ledger-hint">{t("ops.case.inspection.notesHint")}</span>
+                  <span className="field-hint">{t("ops.case.inspection.notesHint")}</span>
                 </div>
 
-                <div className="ledger-field">
-                  <label className="ledger-field-label" htmlFor="ops-insp-message">{t("ops.case.inspection.messageLabel")}</label>
+                <div className="field">
+                  <label className="field-label" htmlFor="ops-insp-message">{t("ops.case.inspection.messageLabel")}</label>
                   <textarea
                     id="ops-insp-message"
                     value={inspectionMessage}
@@ -600,23 +601,23 @@ export function OpsReviewPage() {
                     }}
                     disabled={inspection.submitting}
                   />
-                  <span className="ledger-hint">{t("ops.case.inspection.messageHint")}</span>
+                  <span className="field-hint">{t("ops.case.inspection.messageHint")}</span>
                 </div>
 
-                {inspection.stage === "insert-failed" ? <p className="ledger-form-error">{t("ops.case.recordFailed")}</p> : null}
+                {inspection.stage === "insert-failed" ? <p className="form-error">{t("ops.case.recordFailed")}</p> : null}
 
-                <div className="ledger-form-actions">
-                  <button type="submit" className="ledger-submit" disabled={inspection.submitting}>
+                <div className="form-actions">
+                  <button type="submit" className="primary-button" disabled={inspection.submitting}>
                     {inspection.submitting ? t("ops.case.inspection.submitting") : t("ops.case.inspection.submit")}
                   </button>
                 </div>
               </form>
             )
           ) : status === "INSPECTED" ? (
-            <form className="ledger-form ledger-case-section" onSubmit={onStartRefund}>
-              <p className="ledger-case-title">{t("ops.case.startRefund.title")}</p>
-              <div className="ledger-field">
-                <label className="ledger-field-label" htmlFor="ops-start-refund-message">{t("ops.review.messageLabel")}</label>
+            <form className="stack-form case-section" onSubmit={onStartRefund}>
+              <p className="case-section-title">{t("ops.case.startRefund.title")}</p>
+              <div className="field">
+                <label className="field-label" htmlFor="ops-start-refund-message">{t("ops.review.messageLabel")}</label>
                 <textarea
                   id="ops-start-refund-message"
                   value={startRefundMessage}
@@ -624,16 +625,16 @@ export function OpsReviewPage() {
                   disabled={submitting}
                 />
               </div>
-              {submitStage === "update-failed" ? <p className="ledger-form-error">{t("ops.review.updateFailed")}</p> : null}
-              <div className="ledger-form-actions">
-                <button type="submit" className="ledger-submit" disabled={submitting}>
+              {submitStage === "update-failed" ? <p className="form-error">{t("ops.review.updateFailed")}</p> : null}
+              <div className="form-actions">
+                <button type="submit" className="primary-button" disabled={submitting}>
                   {submitting ? t("ops.case.startRefund.confirming") : t("ops.case.startRefund.confirm")}
                 </button>
               </div>
             </form>
           ) : status === "REFUND_PROCESSING" ? (
             refundAction.stage === "update-failed" ? (
-              <div className="ledger-case-section">
+              <div className="case-section">
                 <StageBanner
                   title={t("ops.case.updateFailed.title")}
                   body={t("ops.case.updateFailed.body")}
@@ -644,7 +645,7 @@ export function OpsReviewPage() {
                 />
               </div>
             ) : refundAction.stage === "notify-failed" ? (
-              <div className="ledger-case-section">
+              <div className="case-section">
                 <StageBanner
                   title={t("ops.review.notifyFailed.title")}
                   body={t("ops.review.notifyFailed.body").replace("{status}", "REFUNDED")}
@@ -655,11 +656,11 @@ export function OpsReviewPage() {
                 />
               </div>
             ) : (
-              <form className="ledger-form ledger-case-section" onSubmit={onRecordRefund}>
-                <p className="ledger-case-title">{t("ops.case.refund.title")}</p>
+              <form className="stack-form case-section" onSubmit={onRecordRefund}>
+                <p className="case-section-title">{t("ops.case.refund.title")}</p>
 
-                <div className="ledger-field">
-                  <label className="ledger-field-label" htmlFor="ops-refund-method">{t("ops.case.refund.methodLabel")}</label>
+                <div className="field">
+                  <label className="field-label" htmlFor="ops-refund-method">{t("ops.case.refund.methodLabel")}</label>
                   <select
                     id="ops-refund-method"
                     value={refundMethod}
@@ -672,8 +673,8 @@ export function OpsReviewPage() {
                   </select>
                 </div>
 
-                <div className="ledger-field">
-                  <label className="ledger-field-label" htmlFor="ops-refund-amount">{t("ops.case.refund.amountLabel")}</label>
+                <div className="field">
+                  <label className="field-label" htmlFor="ops-refund-amount">{t("ops.case.refund.amountLabel")}</label>
                   <input
                     id="ops-refund-amount"
                     type="number"
@@ -685,8 +686,8 @@ export function OpsReviewPage() {
                   />
                 </div>
 
-                <div className="ledger-field">
-                  <label className="ledger-field-label" htmlFor="ops-refund-reference">{t("ops.case.refund.referenceLabel")}</label>
+                <div className="field">
+                  <label className="field-label" htmlFor="ops-refund-reference">{t("ops.case.refund.referenceLabel")}</label>
                   <input
                     id="ops-refund-reference"
                     type="text"
@@ -694,34 +695,34 @@ export function OpsReviewPage() {
                     onChange={(event) => setRefundReference(event.target.value)}
                     disabled={refundAction.submitting}
                   />
-                  <span className="ledger-hint">{t("ops.case.refund.referenceHint")}</span>
+                  <span className="field-hint">{t("ops.case.refund.referenceHint")}</span>
                 </div>
 
-                <p className="ledger-hint">{refundCoreLine(refundAmount, refundMethod, refundReference, t)}</p>
+                <p className="field-hint">{refundCoreLine(refundAmount, refundMethod, refundReference, t)}</p>
 
-                <div className="ledger-field">
-                  <label className="ledger-field-label" htmlFor="ops-refund-note">{t("ops.case.refund.noteLabel")}</label>
+                <div className="field">
+                  <label className="field-label" htmlFor="ops-refund-note">{t("ops.case.refund.noteLabel")}</label>
                   <textarea
                     id="ops-refund-note"
                     value={refundNote}
                     onChange={(event) => setRefundNote(event.target.value)}
                     disabled={refundAction.submitting}
                   />
-                  <span className="ledger-hint">{t("ops.case.refund.noteHint")}</span>
+                  <span className="field-hint">{t("ops.case.refund.noteHint")}</span>
                 </div>
 
-                {refundAction.stage === "insert-failed" ? <p className="ledger-form-error">{t("ops.case.recordFailed")}</p> : null}
+                {refundAction.stage === "insert-failed" ? <p className="form-error">{t("ops.case.recordFailed")}</p> : null}
 
-                <div className="ledger-form-actions">
-                  <button type="submit" className="ledger-submit" disabled={refundAction.submitting || !refundReference.trim()}>
+                <div className="form-actions">
+                  <button type="submit" className="primary-button" disabled={refundAction.submitting || !refundReference.trim()}>
                     {refundAction.submitting ? t("ops.case.refund.submitting") : t("ops.case.refund.submit")}
                   </button>
                 </div>
               </form>
             )
           ) : (
-            <div className="ledger-terminal-summary">
-              <p className="ledger-label">{t("ops.case.terminal.title")}</p>
+            <div className="case-terminal-summary">
+              <p className="case-label">{t("ops.case.terminal.title")}</p>
               {status === "REFUNDED" && refund ? (
                 <p>
                   {t("ops.case.terminal.refundedBody")

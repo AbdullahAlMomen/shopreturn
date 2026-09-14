@@ -103,7 +103,7 @@ export function DecisionLog({
         </label>
         <div className="decision-form-wide">
           <ActionButton type="submit" disabled={!canSubmit}>{t("insights.decisions.record")}</ActionButton>
-          {saveFailed ? <p className="ledger-rejection" role="alert">{t("insights.decisions.saveError")}</p> : null}
+          {saveFailed ? <p className="form-error" role="alert">{t("insights.decisions.saveError")}</p> : null}
         </div>
       </form>
 
@@ -130,7 +130,7 @@ export function DecisionLog({
                 <ActionButton onClick={() => void markDone(decision.ItemId)}>{t("insights.decisions.markDone")}</ActionButton>
               ) : <span />}
               {completeFailedId === decision.ItemId ? (
-                <p className="ledger-rejection decision-note" role="alert">{t("insights.decisions.completeError")}</p>
+                <p className="form-error decision-note" role="alert">{t("insights.decisions.completeError")}</p>
               ) : null}
             </div>
           ))}

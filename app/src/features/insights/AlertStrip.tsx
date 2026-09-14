@@ -76,7 +76,7 @@ export function AlertStrip({
               )}
             </div>
             {failedId === alert.ItemId ? (
-              <p className="ledger-rejection" role="alert">{t("insights.alerts.acknowledgeError")}</p>
+              <p className="form-error" role="alert">{t("insights.alerts.acknowledgeError")}</p>
             ) : null}
           </article>
         );
