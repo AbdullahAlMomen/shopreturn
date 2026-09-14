@@ -191,9 +191,30 @@ pre { background: var(--text); border-radius: var(--radius); color: var(--surfac
 /* Tables, forms, and CRUD helpers */
 .toolbar { align-items: center; display: flex; gap: 10px; justify-content: space-between; margin-bottom: 14px; }
 .toolbar-actions { align-items: center; display: flex; gap: 8px; }
-.search-box { align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); display: flex; gap: 8px; max-width: 360px; padding: 0 12px; transition: border-color 0.15s ease; width: 100%; }
-.search-box:has(input:focus) { border-color: var(--brand); }
-.search-box input, .form-field input, .form-field select { background: transparent; border: 0; color: var(--text); font: inherit; height: 40px; width: 100%; }
+/* The search box is a single composite control: the wrapper below owns the
+   border, radius, background and padding, and is the only thing that draws
+   a focus ring (see :focus-within below). Height 40px matches the app's
+   other controls (.primary-button/.icon-button use the same min-height, see
+   line ~160); horizontal padding 14px matches the table's own th/td rhythm
+   (line ~206) so the search box and the table beneath it read as one
+   component instead of two differently-sized boxes stacked on top of each
+   other. */
+.search-box { align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); display: flex; gap: 8px; height: 40px; max-width: 360px; padding: 0 14px; transition: border-color 0.15s ease, background-color 0.15s ease; width: 100%; }
+.search-box:hover { border-color: var(--border-strong); }
+/* :focus-within (not :has(input:focus), which did the same job before this
+   fix) puts the ring on the wrapper. Mirrors the global 2px --brand ring
+   (line ~68) so keyboard focus looks the same as everywhere else in the
+   app, just drawn once on the wrapper instead of once on the wrapper AND
+   once on the input. */
+.search-box:focus-within { border-color: var(--brand); outline: 2px solid var(--brand); outline-offset: 2px; }
+/* The input is deliberately chrome-less inside the wrapper above -- no
+   border, no outline, no shadow of its own -- so it can never draw a
+   second, offset ring nested inside the wrapper's. This is a scoped
+   exception to the global :focus-visible rule (line 68): do not restore a
+   focus style on this input, that's exactly what produced the doubled,
+   misaligned rounded rectangles this rule fixes. */
+.search-box input { background: transparent; border: 0; box-shadow: none; color: var(--text); font: inherit; height: 100%; outline: none; width: 100%; }
+.form-field input, .form-field select { background: transparent; border: 0; color: var(--text); font: inherit; height: 40px; width: 100%; }
 .form-grid { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .filter-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-bottom: 12px; }
 .form-field { display: grid; gap: 6px; }
@@ -211,7 +232,14 @@ tbody tr:last-child td { border-bottom: 0; }
 .row-actions { align-items: center; display: flex; gap: 6px; justify-content: flex-end; }
 .pagination { align-items: center; color: var(--text-muted); display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; }
 .pagination-count { font-size: 13px; }
-.pagination-controls { align-items: center; display: flex; gap: 10px; }
+/* flex-wrap: wrap -- Per-page label+select, Previous, "Page X of Y", and
+   Next were four unbreakable-length strings the width of an English UI on a
+   single flex line. Bangla ("প্রতি পৃষ্ঠায়", "পূর্ববর্তী", "পরবর্তী") is
+   longer, so this row must be allowed to wrap onto multiple lines at a
+   narrow content width instead of overflowing sideways -- these classes
+   were dead CSS before TableControls.tsx (step 3) became their first real
+   consumer, so nothing here was actually proven to work at narrow widths. */
+.pagination-controls { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; }
 .pagination-size { align-items: center; display: flex; font-size: 13px; gap: 6px; }
 .pagination-size select { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); color: var(--text); padding: 4px 8px; }
 .empty-state, .error-state, .empty-page { align-items: center; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); display: grid; gap: 10px; justify-items: center; margin-bottom: 12px; padding: 28px; text-align: center; }
