@@ -141,7 +141,7 @@ function TimelineHistory({ timeline, t }: { timeline: TimelineEntry[]; t: Transl
 
 export function OpsReviewPage() {
   const { t } = useT();
-  const { hasRole, roles } = useRoles();
+  const { hasRole, isLoading: rolesLoading, roles } = useRoles();
   const itemId = currentReviewId();
   const {
     returnCase, timeline, refund, loading, loadError,
@@ -299,6 +299,19 @@ export function OpsReviewPage() {
       message: fullMessage
     });
     if (ok) await refetch();
+  }
+
+  // Same reason as OpsQueuePage: roles load asynchronously, and denying
+  // before they arrive would show the restricted notice to an ops user.
+  if (rolesLoading) {
+    return (
+      <section>
+        <div className="panel">
+          <Skeleton className="skeleton-line" style={{ width: "100%" }} />
+          <Skeleton className="skeleton-line" style={{ width: "90%" }} />
+        </div>
+      </section>
+    );
   }
 
   if (!hasRole("ops")) {

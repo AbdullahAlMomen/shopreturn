@@ -42,7 +42,7 @@ function isAwaitingReview(row: OpsReturnRow): boolean {
 
 export function OpsQueuePage() {
   const { t } = useT();
-  const { hasRole, roles } = useRoles();
+  const { hasRole, isLoading: rolesLoading, roles } = useRoles();
   const { returns, loading, error, refetch } = useOpsQueue();
 
   // UX-only guard, same shape as NewReturnPage's customer-only gate: the
@@ -51,6 +51,21 @@ export function OpsQueuePage() {
   // clearly instead of showing a blank page or an opaque server error --
   // it enforces nothing itself, the grant matrix in blocks/data/rules.json
   // remains the actual boundary.
+  // Roles come from iam.me(), so they are unknown for the first paint or
+  // two. Denying in that window would flash "not for your role" at a real
+  // ops user before their own queue appeared.
+  if (rolesLoading) {
+    return (
+      <section>
+        <PageHeader title={t("ops.title")} subtitle={t("ops.subtitle")} />
+        <div className="panel">
+          <Skeleton className="skeleton-line" style={{ width: "100%" }} />
+          <Skeleton className="skeleton-line" style={{ width: "90%" }} />
+        </div>
+      </section>
+    );
+  }
+
   if (!hasRole("ops")) {
     const roleLabel = roles.length > 0 ? roles.join(", ") : t("ops.restricted.genericRole");
     return (

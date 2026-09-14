@@ -35,7 +35,7 @@ function formatOrderOption(order: EligibleOrder, t: (key: TranslationKey, fallba
 
 export function NewReturnPage() {
   const { t } = useT();
-  const { isCustomer, roles } = useRoles();
+  const { isCustomer, isLoading: rolesLoading, roles } = useRoles();
   const { orders, loading: ordersLoading, error: ordersError, refetch: refetchOrders } = useEligibleOrders();
   const { submit, submitting, error } = useSubmitReturn();
 
@@ -103,6 +103,19 @@ export function NewReturnPage() {
   // directly. This just avoids showing a form that the server (correctly)
   // rejects with AUTH_NOT_AUTHENTICATED -- it enforces nothing itself, the
   // grant matrix in blocks/data/rules.json remains the actual boundary.
+  // Roles arrive from iam.me() a beat after first paint; denying during
+  // that window would tell an actual customer this form is not for them.
+  if (rolesLoading) {
+    return (
+      <section>
+        <div className="panel">
+          <Skeleton className="skeleton-line" style={{ width: "100%" }} />
+          <Skeleton className="skeleton-line" style={{ width: "90%" }} />
+        </div>
+      </section>
+    );
+  }
+
   if (!isCustomer) {
     const roleLabel = roles.length > 0 ? roles.join(", ") : t("returns.new.restricted.genericRole");
     return (

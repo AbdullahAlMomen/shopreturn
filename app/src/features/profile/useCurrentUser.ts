@@ -1,16 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
 import type { BlocksUser } from "@seliseblocks/client";
-import { useAuth } from "../../app/providers/AuthProvider";
-import { blocksClient } from "../../lib/blocks/client";
+import { useMe } from "../../lib/blocks/useMe";
 
-export function useCurrentUser() {
-  const { status } = useAuth();
-  return useQuery({
-    enabled: status === "authenticated",
-    queryFn: () => blocksClient.iam.me(),
-    queryKey: ["iam", "me"]
-  });
-}
+// Kept as the profile feature's name for the shared identity query defined
+// in lib/blocks/useMe.ts. Both names hit the same queryKey, so adding a
+// caller costs no extra request.
+export const useCurrentUser = useMe;
 
 export function userDisplayName(profile?: BlocksUser): string {
   if (!profile) return "";
