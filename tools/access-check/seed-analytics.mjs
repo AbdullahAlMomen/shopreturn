@@ -41,6 +41,12 @@ async function listAll(blocks, schema, fields) {
   const rows = [];
   for (let page = 1; page <= 50; page += 1) {
     const res = await blocks.data.collection(schema, { fields }).list({ pageNo: page, pageSize: 100 });
+    // A failed read must not look like an empty page: it would feed a zero
+    // baseline into the deficit maths below and re-seed full targets on top
+    // of whatever is already there.
+    if ((Array.isArray(res?.errors) && res.errors.length > 0) || res?.isSuccess === false) {
+      throw new Error(`listAll ${schema} page ${page} failed: ${JSON.stringify(res).slice(0, 200)}`);
+    }
     const items = res?.data?.[`get${schema}s`]?.items ?? [];
     rows.push(...items);
     if (items.length < 100) break;
@@ -50,7 +56,7 @@ async function listAll(blocks, schema, fields) {
 
 function failedWrite(res, field) {
   const payload = res?.data?.[field];
-  return (Array.isArray(res?.errors) && res.errors.length > 0) || !payload?.itemId || payload.acknowledged === false;
+  return (Array.isArray(res?.errors) && res.errors.length > 0) || res?.isSuccess === false || !payload?.itemId || payload.acknowledged === false;
 }
 
 const { blocks: ops } = await signIn(process.env.SHOPRETURN_OPS_EMAIL, process.env.SHOPRETURN_OPS_PASSWORD);
@@ -58,6 +64,14 @@ const { blocks: seed } = await signIn(process.env.SHOPRETURN_SEED_EMAIL, process
 
 const orders = await listAll(ops, 'Order', ['orderNumber', 'sku']);
 const cases = await listAll(ops, 'ReturnCase', ['orderNumber', 'sku', 'area', 'courier']);
+
+// The fixtures guarantee both collections already have rows; an empty result
+// here means the read silently failed rather than the shop having zero
+// orders, and seeding on top of that would duplicate hundreds of rows.
+if (orders.length === 0 || cases.length === 0) {
+  throw new Error(`baseline read looks empty (orders=${orders.length}, cases=${cases.length}); refusing to seed on a possibly-failed read`);
+}
+
 const usedNumbers = new Set(orders.map((row) => row.orderNumber));
 
 let seq = 0;
