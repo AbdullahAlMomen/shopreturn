@@ -1,3 +1,335 @@
 {
-  "policies": []
+  "security": [
+    { "schemaId": "2e6160ec-177d-4400-b537-13db7143f882", "operation": 0, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+    { "schemaId": "2e6160ec-177d-4400-b537-13db7143f882", "operation": 1, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+    { "schemaId": "2e6160ec-177d-4400-b537-13db7143f882", "operation": 2, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+    { "schemaId": "2e6160ec-177d-4400-b537-13db7143f882", "operation": 3, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+
+    { "schemaId": "c85af6e1-e799-4455-b491-56ddfbd59ef5", "operation": 0, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+    { "schemaId": "c85af6e1-e799-4455-b491-56ddfbd59ef5", "operation": 1, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+    { "schemaId": "c85af6e1-e799-4455-b491-56ddfbd59ef5", "operation": 2, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+    { "schemaId": "c85af6e1-e799-4455-b491-56ddfbd59ef5", "operation": 3, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+
+    { "schemaId": "9060ce6e-3833-4212-bc2c-ec41a513c27f", "operation": 0, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+    { "schemaId": "9060ce6e-3833-4212-bc2c-ec41a513c27f", "operation": 1, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+    { "schemaId": "9060ce6e-3833-4212-bc2c-ec41a513c27f", "operation": 2, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+    { "schemaId": "9060ce6e-3833-4212-bc2c-ec41a513c27f", "operation": 3, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+
+    { "schemaId": "cdbb2a81-48ef-4e1a-bba2-1e6a7990f030", "operation": 0, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+    { "schemaId": "cdbb2a81-48ef-4e1a-bba2-1e6a7990f030", "operation": 1, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+    { "schemaId": "cdbb2a81-48ef-4e1a-bba2-1e6a7990f030", "operation": 2, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+    { "schemaId": "cdbb2a81-48ef-4e1a-bba2-1e6a7990f030", "operation": 3, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+
+    { "schemaId": "df644295-ab5c-497d-9cb9-7f04fee02f9d", "operation": 0, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+    { "schemaId": "df644295-ab5c-497d-9cb9-7f04fee02f9d", "operation": 1, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+    { "schemaId": "df644295-ab5c-497d-9cb9-7f04fee02f9d", "operation": 2, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+    { "schemaId": "df644295-ab5c-497d-9cb9-7f04fee02f9d", "operation": 3, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+
+    { "schemaId": "84171f54-5a49-4b4e-833e-0ad8e90e41b8", "operation": 0, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+    { "schemaId": "84171f54-5a49-4b4e-833e-0ad8e90e41b8", "operation": 1, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+    { "schemaId": "84171f54-5a49-4b4e-833e-0ad8e90e41b8", "operation": 2, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+    { "schemaId": "84171f54-5a49-4b4e-833e-0ad8e90e41b8", "operation": 3, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+
+    { "schemaId": "e9863680-9b57-4fa9-9735-d1b23fdf6b2b", "operation": 0, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+    { "schemaId": "e9863680-9b57-4fa9-9735-d1b23fdf6b2b", "operation": 1, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+    { "schemaId": "e9863680-9b57-4fa9-9735-d1b23fdf6b2b", "operation": 2, "accessLevel": 1, "policyType": 0, "fieldNames": [] },
+    { "schemaId": "e9863680-9b57-4fa9-9735-d1b23fdf6b2b", "operation": 3, "accessLevel": 1, "policyType": 0, "fieldNames": [] }
+  ],
+  "policies": [
+    {
+      "schemaName": "ReturnCase",
+      "policyName": "hide-ai-columns-from-customer",
+      "policyDescription": "Masks the unconfirmed AI proposal columns (aiReason, aiConfidence, aiRestockable, aiCourierClaim, aiDraftMessage) from the owning customer on read, so a customer sees only ops-confirmed fields, never the internal AI draft.",
+      "policyType": 0,
+      "operation": 0,
+      "isAllowPolicy": false,
+      "priority": 5,
+      "fieldNames": ["aiReason", "aiConfidence", "aiRestockable", "aiCourierClaim", "aiDraftMessage"],
+      "ruleGroup": {
+        "logicalOperator": 0,
+        "nestedGroups": [],
+        "rules": [
+          { "leftSource": 1, "leftOperand": "customerItemId", "operator": 0, "rightSource": 0, "rightOperand": "UserId" }
+        ]
+      }
+    },
+    {
+      "schemaName": "ReturnCase",
+      "policyName": "customer-reads-own-returns",
+      "policyDescription": "A customer may read only ReturnCase rows they own, identified by customerItemId matching the caller's user id.",
+      "policyType": 0,
+      "operation": 0,
+      "isAllowPolicy": true,
+      "priority": 10,
+      "fieldNames": [],
+      "ruleGroup": {
+        "logicalOperator": 0,
+        "nestedGroups": [],
+        "rules": [
+          { "leftSource": 1, "leftOperand": "customerItemId", "operator": 0, "rightSource": 0, "rightOperand": "UserId" }
+        ]
+      }
+    },
+    {
+      "schemaName": "ReturnCase",
+      "policyName": "customer-creates-returns",
+      "policyDescription": "A customer may create a new ReturnCase row to start a return request.",
+      "policyType": 0,
+      "operation": 1,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": { "logicalOperator": 0, "nestedGroups": [], "rules": [] }
+    },
+    {
+      "schemaName": "ReturnCase",
+      "policyName": "ops-reads-all-returns",
+      "policyDescription": "Ops staff may read every ReturnCase row to process returns across all customers.",
+      "policyType": 0,
+      "operation": 0,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": { "logicalOperator": 0, "nestedGroups": [], "rules": [] }
+    },
+    {
+      "schemaName": "ReturnCase",
+      "policyName": "ops-edits-all-returns",
+      "policyDescription": "Ops staff may edit any ReturnCase row, since they drive the return through inspection and decision.",
+      "policyType": 0,
+      "operation": 2,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": { "logicalOperator": 0, "nestedGroups": [], "rules": [] }
+    },
+    {
+      "schemaName": "ReturnCase",
+      "policyName": "manager-reads-all-returns",
+      "policyDescription": "Managers may read every ReturnCase row for pattern and financial oversight.",
+      "policyType": 0,
+      "operation": 0,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": { "logicalOperator": 0, "nestedGroups": [], "rules": [] }
+    },
+
+    {
+      "schemaName": "ReturnTimeline",
+      "policyName": "customer-reads-own-visible-timeline",
+      "policyDescription": "A customer may read only their own ReturnTimeline entries that are marked customer-visible, keeping internal-only entries hidden.",
+      "policyType": 0,
+      "operation": 0,
+      "isAllowPolicy": true,
+      "priority": 10,
+      "fieldNames": [],
+      "ruleGroup": {
+        "logicalOperator": 0,
+        "nestedGroups": [],
+        "rules": [
+          { "leftSource": 1, "leftOperand": "customerItemId", "operator": 0, "rightSource": 0, "rightOperand": "UserId" },
+          { "leftSource": 1, "leftOperand": "isCustomerVisible", "operator": 0, "rightSource": 2, "rightOperand": "true" }
+        ]
+      }
+    },
+    {
+      "schemaName": "ReturnTimeline",
+      "policyName": "ops-reads-all-timeline",
+      "policyDescription": "Ops staff may read every ReturnTimeline entry, visible or internal, across all returns.",
+      "policyType": 0,
+      "operation": 0,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": { "logicalOperator": 0, "nestedGroups": [], "rules": [] }
+    },
+    {
+      "schemaName": "ReturnTimeline",
+      "policyName": "ops-inserts-timeline",
+      "policyDescription": "Ops staff may append new ReturnTimeline entries as a return progresses.",
+      "policyType": 0,
+      "operation": 1,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": { "logicalOperator": 0, "nestedGroups": [], "rules": [] }
+    },
+    {
+      "schemaName": "ReturnTimeline",
+      "policyName": "manager-reads-all-timeline",
+      "policyDescription": "Managers may read every ReturnTimeline entry for oversight.",
+      "policyType": 0,
+      "operation": 0,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": { "logicalOperator": 0, "nestedGroups": [], "rules": [] }
+    },
+
+    {
+      "schemaName": "Inspection",
+      "policyName": "ops-reads-inspections",
+      "policyDescription": "Ops staff may read Inspection rows to review condition-on-arrival findings.",
+      "policyType": 0,
+      "operation": 0,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": { "logicalOperator": 0, "nestedGroups": [], "rules": [] }
+    },
+    {
+      "schemaName": "Inspection",
+      "policyName": "ops-inserts-inspections",
+      "policyDescription": "Ops staff may create Inspection rows when a returned item arrives.",
+      "policyType": 0,
+      "operation": 1,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": { "logicalOperator": 0, "nestedGroups": [], "rules": [] }
+    },
+    {
+      "schemaName": "Inspection",
+      "policyName": "ops-edits-inspections",
+      "policyDescription": "Ops staff may edit Inspection rows to correct or complete inspection findings.",
+      "policyType": 0,
+      "operation": 2,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": { "logicalOperator": 0, "nestedGroups": [], "rules": [] }
+    },
+    {
+      "schemaName": "Inspection",
+      "policyName": "manager-reads-inspections",
+      "policyDescription": "Managers may read Inspection rows for oversight of return quality and fault attribution.",
+      "policyType": 0,
+      "operation": 0,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": { "logicalOperator": 0, "nestedGroups": [], "rules": [] }
+    },
+
+    {
+      "schemaName": "Refund",
+      "policyName": "customer-reads-own-refunds",
+      "policyDescription": "A customer may read only Refund rows they own, identified by customerItemId matching the caller's user id.",
+      "policyType": 0,
+      "operation": 0,
+      "isAllowPolicy": true,
+      "priority": 10,
+      "fieldNames": [],
+      "ruleGroup": {
+        "logicalOperator": 0,
+        "nestedGroups": [],
+        "rules": [
+          { "leftSource": 1, "leftOperand": "customerItemId", "operator": 0, "rightSource": 0, "rightOperand": "UserId" }
+        ]
+      }
+    },
+    {
+      "schemaName": "Refund",
+      "policyName": "ops-reads-refunds",
+      "policyDescription": "Ops staff may read every Refund row to track disbursement status.",
+      "policyType": 0,
+      "operation": 0,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": { "logicalOperator": 0, "nestedGroups": [], "rules": [] }
+    },
+    {
+      "schemaName": "Refund",
+      "policyName": "ops-inserts-refunds",
+      "policyDescription": "Ops staff may create Refund rows when a refund is paid out.",
+      "policyType": 0,
+      "operation": 1,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": { "logicalOperator": 0, "nestedGroups": [], "rules": [] }
+    },
+    {
+      "schemaName": "Refund",
+      "policyName": "manager-reads-refunds",
+      "policyDescription": "Managers may read every Refund row for financial totals and reporting.",
+      "policyType": 0,
+      "operation": 0,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": { "logicalOperator": 0, "nestedGroups": [], "rules": [] }
+    },
+
+    {
+      "schemaName": "PatternAlert",
+      "policyName": "manager-reads-pattern-alerts",
+      "policyDescription": "Managers may read PatternAlert rows to see threshold-crossing signals by SKU, area or courier.",
+      "policyType": 0,
+      "operation": 0,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": { "logicalOperator": 0, "nestedGroups": [], "rules": [] }
+    },
+    {
+      "schemaName": "PatternAlert",
+      "policyName": "manager-edits-pattern-alerts",
+      "policyDescription": "Managers may edit PatternAlert rows to acknowledge an alert.",
+      "policyType": 0,
+      "operation": 2,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": { "logicalOperator": 0, "nestedGroups": [], "rules": [] }
+    },
+
+    {
+      "schemaName": "Decision",
+      "policyName": "manager-reads-decisions",
+      "policyDescription": "Managers may read Decision rows, the log of return outcomes and rationale.",
+      "policyType": 0,
+      "operation": 0,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": { "logicalOperator": 0, "nestedGroups": [], "rules": [] }
+    },
+    {
+      "schemaName": "Decision",
+      "policyName": "manager-inserts-decisions",
+      "policyDescription": "Managers may create Decision rows to record a return outcome.",
+      "policyType": 0,
+      "operation": 1,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": { "logicalOperator": 0, "nestedGroups": [], "rules": [] }
+    },
+    {
+      "schemaName": "Decision",
+      "policyName": "manager-edits-decisions",
+      "policyDescription": "Managers may edit Decision rows to correct a recorded outcome.",
+      "policyType": 0,
+      "operation": 2,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": { "logicalOperator": 0, "nestedGroups": [], "rules": [] }
+    },
+
+    {
+      "schemaName": "Order",
+      "policyName": "all-roles-read-orders",
+      "policyDescription": "Order is seeded demo data backing lookupOrder; every role (customer, ops, manager) may read it.",
+      "policyType": 0,
+      "operation": 0,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": { "logicalOperator": 0, "nestedGroups": [], "rules": [] }
+    }
+  ]
 }
