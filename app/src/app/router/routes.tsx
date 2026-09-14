@@ -10,19 +10,21 @@ import { MyReturnsPage } from "../../features/returns/MyReturnsPage";
 import { NewReturnPage } from "../../features/returns/NewReturnPage";
 import { ReturnDetailPage } from "../../features/returns/ReturnDetailPage";
 import { OpsQueuePage } from "../../features/ops/OpsQueuePage";
+import { OpsReviewPage } from "../../features/ops/OpsReviewPage";
 
 const protectedRoutes = {
   "/": ProfilePage,
   "/error": ErrorPage,
   "/returns": MyReturnsPage,
   "/returns/new": NewReturnPage,
-  "/ops": OpsQueuePage
+  "/ops": OpsQueuePage,
+  "/ops/review": OpsReviewPage
 };
 
-// "/returns" resolves to two different pages depending on the query string.
-// The router only matches on exact pathname (no path params), and `search`
-// is already parsed here, so the id-present/absent branch is decided at
-// this one call site rather than inside either page component.
+// "/returns" and "/ops/review" both resolve on pathname alone; each page
+// reads its own "id" off location.search (see currentReturnId/
+// currentReviewId in the respective page components) rather than receiving
+// it as a prop -- the router has no path params.
 function resolveProtectedPage(path: string, search: string) {
   if (path === "/returns" && new URLSearchParams(search).get("id")) {
     return ReturnDetailPage;

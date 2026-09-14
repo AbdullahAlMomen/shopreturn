@@ -10,6 +10,16 @@ import { useRoles } from "../../lib/blocks/useRoles";
 import { useOpsQueue } from "./useOpsQueue";
 import type { OpsReturnRow } from "./useOpsQueue";
 
+// Same pushState + synthetic popstate pattern as NewReturnPage's
+// goToReturn() -- the hand-rolled router only matches pathname, so this
+// lands on the same history entry a "real" navigate() call would produce.
+// Added alongside Task 2's review screen: a queue nobody can click into
+// isn't a queue, it's a list.
+function goToReview(itemId: string) {
+  window.history.pushState({}, "", `/ops/review?id=${encodeURIComponent(itemId)}`);
+  window.dispatchEvent(new PopStateEvent("popstate"));
+}
+
 // Same age formatting as MyReturnsPage.tsx (returns.age.* keys are shared,
 // not duplicated) -- not imported from there because that function isn't
 // exported, and this hook's row shape differs (OpsReturnRow vs ReturnRow).
@@ -89,7 +99,19 @@ export function OpsQueuePage() {
           {returns.map((row) => {
             const pending = isAwaitingReview(row);
             return (
-              <div key={row.ItemId} className={`ops-queue-row${pending ? " ops-queue-row-pending" : ""}`}>
+              <div
+                key={row.ItemId}
+                className={`ops-queue-row${pending ? " ops-queue-row-pending" : ""}`}
+                role="button"
+                tabIndex={0}
+                onClick={() => goToReview(row.ItemId)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    goToReview(row.ItemId);
+                  }
+                }}
+              >
                 <span className="ops-queue-order">{row.orderNumber || t("returns.unknownOrder")}</span>
                 <span className="ops-queue-product">{row.productName || t("returns.unknownProduct")}</span>
                 <span className="ops-queue-quote" title={row.rawCustomerText}>{row.rawCustomerText || "—"}</span>

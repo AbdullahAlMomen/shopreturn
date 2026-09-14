@@ -174,7 +174,9 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-.ops-queue-row { border-top: 1px solid var(--ledger-rule); font-family: var(--ledger-serif); font-size: 13px; }
+.ops-queue-row { border-top: 1px solid var(--ledger-rule); cursor: pointer; font-family: var(--ledger-serif); font-size: 13px; }
+.ops-queue-row:hover, .ops-queue-row:focus-visible { background: var(--ledger-band); }
+.ops-queue-row:focus-visible { outline: 1px solid var(--ledger-ink); outline-offset: -1px; }
 /* The queue's entire purpose: a return nobody has reviewed yet must be
    obvious at a glance, not just labelled in one column. */
 .ops-queue-row-pending { background: var(--ledger-band); box-shadow: inset 3px 0 0 var(--ledger-warn); }
@@ -194,3 +196,85 @@
 }
 .ops-queue-review-pending { background: var(--ledger-warn); color: var(--ledger-surface); }
 .ops-queue-review-done { background: transparent; border: 1px solid var(--ledger-rule); color: var(--ledger-faint); }
+
+/* Review screen (Task 2) -- "the editable sentence". Design review's
+   explicit choice over a labelled form: dropdowns sit inline in a serif
+   sentence, underlined rather than boxed, so the whole thing reads as
+   prose with a human's hand on it rather than a data-entry grid. Every
+   select below inherits font/size from .ledger-sentence via `font: inherit`
+   so a reader can't tell where prose ends and control begins except by the
+   underline and the chevron. */
+.ledger-sentence {
+  color: var(--ledger-ink);
+  font-family: var(--ledger-serif);
+  font-size: 17px;
+  line-height: 2.1;
+  margin: 26px 0 0;
+}
+.ledger-select-wrap { display: inline-flex; position: relative; vertical-align: baseline; }
+.ledger-select-wrap::after {
+  color: var(--ledger-muted);
+  content: "\25be";
+  font-size: 10px;
+  pointer-events: none;
+  position: absolute;
+  right: 1px;
+  top: 52%;
+  transform: translateY(-50%);
+}
+.ledger-inline-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--ledger-ink);
+  color: var(--ledger-ink);
+  cursor: pointer;
+  font: inherit;
+  font-weight: 600;
+  padding: 0 15px 1px 1px;
+}
+.ledger-inline-select:focus { border-bottom-width: 2px; outline: none; }
+.ledger-inline-select:disabled { color: var(--ledger-muted); cursor: not-allowed; }
+.ledger-confidence {
+  color: var(--ledger-faint);
+  font-family: var(--ledger-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  margin: 6px 0 0;
+}
+.ledger-confidence-raw { color: var(--ledger-faint); }
+
+.ledger-notify-banner {
+  background: var(--ledger-band);
+  border: 1px solid var(--ledger-warn);
+  border-radius: 4px;
+  display: grid;
+  gap: 8px;
+  margin: 24px 0 0;
+  padding: 16px 18px;
+}
+.ledger-notify-banner-title {
+  color: var(--ledger-warn);
+  font-family: var(--ledger-mono);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+.ledger-notify-banner p { color: var(--ledger-ink); font-family: var(--ledger-serif); font-size: 13.5px; line-height: 1.55; margin: 0; }
+.ledger-notify-banner .ledger-submit { justify-self: start; }
+
+.ledger-reviewed-summary { margin: 24px 0 0; }
+.ledger-reviewed-summary p:not(.ledger-label) { color: var(--ledger-ink); font-family: var(--ledger-serif); font-size: 14px; line-height: 1.6; margin: 4px 0 0; }
+
+.ledger-submit-secondary {
+  background: transparent; border: 1px solid var(--ledger-rule); color: var(--ledger-ink);
+}
+.ledger-submit-secondary:hover { border-color: var(--ledger-ink); }
+.ledger-submit-warn { background: var(--ledger-warn); }
+
+@media (max-width: 480px) {
+  .ledger-sentence { font-size: 15.5px; line-height: 2.3; }
+}
