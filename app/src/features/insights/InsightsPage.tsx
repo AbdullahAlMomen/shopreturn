@@ -11,6 +11,9 @@ import { formatPercent, formatTaka } from "./analytics";
 import type { Insights } from "./analytics";
 import { FacetBars } from "./FacetBars";
 import { useInsights } from "./useInsights";
+import { AlertStrip } from "./AlertStrip";
+import { DecisionLog } from "./DecisionLog";
+import { useAlerts } from "./useAlerts";
 
 // Reason labels already exist for the ops review screen; reuse them so a
 // reason reads identically wherever it appears.
@@ -62,13 +65,32 @@ function Dashboard() {
   const { t } = useT();
   const reasonLabel = useReasonLabel();
   const { insights, loading, error, refetch } = useInsights();
+  const alertState = useAlerts();
 
   return (
     <section className="insights-page">
       <PageHeader
         title={t("insights.title")}
         subtitle={t("insights.subtitle")}
-        actions={<ActionButton variant="icon" onClick={() => refetch()} title={t("common.refresh")} icon={<RefreshCw size={18} />} />}
+        actions={
+          <ActionButton
+            variant="icon"
+            onClick={() => { void refetch(); void alertState.refetch(); }}
+            title={t("common.refresh")}
+            icon={<RefreshCw size={18} />}
+          />
+        }
+      />
+
+      {/* Docked above the answer, per the spec: the alert is what arrived
+          before the manager did. Independent of the insights fetch, so a slow
+          aggregation never hides an alert. */}
+      <AlertStrip
+        alerts={alertState.alerts}
+        loading={alertState.loading}
+        error={alertState.error}
+        onAcknowledge={alertState.acknowledge}
+        onRetry={() => void alertState.refetch()}
       />
 
       {loading ? (
@@ -95,6 +117,8 @@ function Dashboard() {
           </div>
         </>
       ) : null}
+
+      <DecisionLog alerts={alertState.alerts} />
     </section>
   );
 }
