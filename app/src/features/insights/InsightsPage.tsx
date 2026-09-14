@@ -14,6 +14,7 @@ import { useInsights } from "./useInsights";
 import { AlertStrip } from "./AlertStrip";
 import { DecisionLog } from "./DecisionLog";
 import { useAlerts } from "./useAlerts";
+import { useDecisions } from "./useDecisions";
 
 // Reason labels already exist for the ops review screen; reuse them so a
 // reason reads identically wherever it appears.
@@ -66,6 +67,7 @@ function Dashboard() {
   const reasonLabel = useReasonLabel();
   const { insights, loading, error, refetch } = useInsights();
   const alertState = useAlerts();
+  const decisionState = useDecisions();
 
   return (
     <section className="insights-page">
@@ -75,7 +77,7 @@ function Dashboard() {
         actions={
           <ActionButton
             variant="icon"
-            onClick={() => { void refetch(); void alertState.refetch(); }}
+            onClick={() => { void refetch(); void alertState.refetch(); void decisionState.refetch(); }}
             title={t("common.refresh")}
             icon={<RefreshCw size={18} />}
           />
@@ -93,14 +95,17 @@ function Dashboard() {
         onRetry={() => void alertState.refetch()}
       />
 
-      {loading ? (
+      {/* Skeleton only while loading with no data yet -- a refetch after the
+          refresh button must not blank out insights already on screen;
+          stale-while-refreshing is fine, a flashing skeleton is not. */}
+      {error ? (
+        <ErrorState message={t("insights.loadError")} onRetry={() => refetch()} />
+      ) : loading && !insights ? (
         <div className="panel">
           <Skeleton className="skeleton-line" style={{ width: "100%" }} />
           <Skeleton className="skeleton-line" style={{ width: "80%" }} />
           <Skeleton className="skeleton-line" style={{ width: "90%" }} />
         </div>
-      ) : error ? (
-        <ErrorState message={t("insights.loadError")} onRetry={() => refetch()} />
       ) : insights ? (
         <>
           <Answer insights={insights} />
@@ -118,7 +123,15 @@ function Dashboard() {
         </>
       ) : null}
 
-      <DecisionLog alerts={alertState.alerts} />
+      <DecisionLog
+        alerts={alertState.alerts}
+        decisions={decisionState.decisions}
+        loading={decisionState.loading}
+        error={decisionState.error}
+        record={decisionState.record}
+        complete={decisionState.complete}
+        onRetry={() => void decisionState.refetch()}
+      />
     </section>
   );
 }

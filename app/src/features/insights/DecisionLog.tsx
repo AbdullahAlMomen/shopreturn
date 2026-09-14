@@ -6,14 +6,28 @@ import { Skeleton } from "../../shared/ui/Skeleton";
 import { useT } from "../../lib/i18n/LocalizationProvider";
 import type { TranslationKey } from "../../lib/i18n/dictionary";
 import type { AlertRow } from "./useAlerts";
-import { useDecisions } from "./useDecisions";
-import type { DecisionType } from "./useDecisions";
+import type { DecisionRow, DecisionType } from "./useDecisions";
 
 const TYPES: DecisionType[] = ["SIZE_CHART_FIX", "COURIER_CLAIM", "COD_PAUSE", "OTHER"];
 
-export function DecisionLog({ alerts }: { alerts: AlertRow[] }) {
+export function DecisionLog({
+  alerts,
+  decisions,
+  loading,
+  error,
+  record,
+  complete,
+  onRetry
+}: {
+  alerts: AlertRow[];
+  decisions: DecisionRow[];
+  loading: boolean;
+  error?: string;
+  record: (input: { alertId: string; decisionType: DecisionType; target: string; note: string }) => Promise<boolean>;
+  complete: (itemId: string) => Promise<boolean>;
+  onRetry: () => void;
+}) {
   const { t } = useT();
-  const { decisions, loading, error, record, complete, refetch } = useDecisions();
   const [alertId, setAlertId] = useState("");
   const [decisionType, setDecisionType] = useState<DecisionType>("SIZE_CHART_FIX");
   const [target, setTarget] = useState("");
@@ -93,10 +107,13 @@ export function DecisionLog({ alerts }: { alerts: AlertRow[] }) {
         </div>
       </form>
 
-      {loading ? (
+      {/* Skeleton only while loading with no data yet -- see AlertStrip for
+          why: a refetch after recording or completing a decision must not
+          blank the log the manager is already reading. */}
+      {error ? (
+        <ErrorState message={t("insights.decisions.loadError")} onRetry={onRetry} />
+      ) : loading && decisions.length === 0 ? (
         <Skeleton className="skeleton-line" style={{ width: "100%" }} />
-      ) : error ? (
-        <ErrorState message={t("insights.decisions.loadError")} onRetry={() => refetch()} />
       ) : decisions.length === 0 ? (
         <p className="alert-strip-empty">{t("insights.decisions.empty")}</p>
       ) : (

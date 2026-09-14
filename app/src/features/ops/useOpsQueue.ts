@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { blocksClient } from "../../lib/blocks/client";
+import { itemsOrThrow } from "../../lib/blocks/readItems";
 
 // Ops-only view of ReturnCase -- includes the ai* columns, which the
 // customer-facing hooks (useMyReturns, useReturnDetail) deliberately never
@@ -61,10 +62,8 @@ export function useOpsQueue(scope: QueueScope) {
           pageSize: 50,
           sort: { CreatedDate: -1 },
           ...(scope === "open" ? { filter: { status: { $nin: TERMINAL_STATUSES } } } : {})
-        }) as {
-          data?: { getReturnCases?: { items?: OpsReturnRow[] } };
-        };
-      setReturns(response?.data?.getReturnCases?.items ?? []);
+        });
+      setReturns(itemsOrThrow<OpsReturnRow>(response, "getReturnCases"));
     } catch (caught) {
       setError((caught as Error).message);
     } finally {

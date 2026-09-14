@@ -23,11 +23,14 @@ export function AlertStrip({
   const [busyId, setBusyId] = useState<string>();
   const [failedId, setFailedId] = useState<string>();
 
-  if (loading) {
-    return <div className="alert-strip"><Skeleton className="skeleton-line" style={{ width: "100%" }} /></div>;
-  }
+  // Skeleton only while loading with no data yet -- a refetch after an
+  // acknowledge or a page refresh must not blank out the strip the manager
+  // is already looking at.
   if (error) {
     return <div className="alert-strip"><ErrorState message={t("insights.alerts.loadError")} onRetry={onRetry} /></div>;
+  }
+  if (loading && alerts.length === 0) {
+    return <div className="alert-strip"><Skeleton className="skeleton-line" style={{ width: "100%" }} /></div>;
   }
   if (alerts.length === 0) {
     return <p className="alert-strip-empty">{t("insights.alerts.empty")}</p>;

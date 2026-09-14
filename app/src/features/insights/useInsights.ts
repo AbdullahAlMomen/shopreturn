@@ -1,23 +1,40 @@
 import { useCallback, useEffect, useState } from "react";
 import { blocksClient } from "../../lib/blocks/client";
+import { itemsOrThrow } from "../../lib/blocks/readItems";
 import { computeInsights } from "./analytics";
 import type { CaseRow, Insights, OrderRow } from "./analytics";
 
 const ORDER_FIELDS = ["orderNumber", "sku", "productName", "unitPrice", "area", "courier"];
 const CASE_FIELDS = [...ORDER_FIELDS, "status", "confirmedReason", "aiReason"];
+const PAGE_SIZE = 100;
 
 // No aggregate query exists in the Data Gateway, so the dataset is paged in
-// and reduced in the browser. The 50-page cap is a runaway guard, not a data
-// limit (5,000 rows each at pageSize 100).
+// and reduced in the browser. MAX_PAGES is a data limit, not a runaway
+// guard: if the collection is bigger than this, the loop throws rather than
+// silently reducing over a partial set (see the check after the loop below).
+const MAX_PAGES = 50;
+
 async function listAll<T>(schema: string, fields: string[]): Promise<T[]> {
+  const listField = `get${schema}s`;
   const rows: T[] = [];
-  for (let page = 1; page <= 50; page += 1) {
+  let lastPageWasFull = false;
+  for (let page = 1; page <= MAX_PAGES; page += 1) {
+    // Oldest first: new inserts land at the end of the collection, so
+    // skip/limit paging stays stable across pages even if rows are being
+    // added while this loop runs.
     const response = await blocksClient.data
       .collection(schema, { fields })
-      .list({ pageNo: page, pageSize: 100 }) as { data?: Record<string, { items?: T[] } | undefined> };
-    const items = response?.data?.[`get${schema}s`]?.items ?? [];
+      .list({ pageNo: page, pageSize: PAGE_SIZE, sort: { CreatedDate: 1 } });
+    const items = itemsOrThrow<T>(response, listField);
     rows.push(...items);
-    if (items.length < 100) break;
+    lastPageWasFull = items.length === PAGE_SIZE;
+    if (!lastPageWasFull) break;
+  }
+  if (lastPageWasFull) {
+    throw new Error(
+      `${schema} exceeds ${MAX_PAGES * PAGE_SIZE} rows; the dashboard refuses to show partial ` +
+      "totals, because counting only some orders would inflate every return rate"
+    );
   }
   return rows;
 }

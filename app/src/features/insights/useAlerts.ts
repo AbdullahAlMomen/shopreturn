@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { blocksClient } from "../../lib/blocks/client";
+import { itemsOrThrow } from "../../lib/blocks/readItems";
 import { useMe } from "../../lib/blocks/useMe";
 import { mutationFailed } from "../ops/opsTimeline";
 import type { GraphQLError, MutationPayload } from "../ops/opsTimeline";
@@ -19,7 +20,6 @@ export type AlertRow = {
 // Confirmed live field names; any other name returns 400.
 const FIELDS = ["dimension", "value", "metric", "threshold", "takaImpact", "draftExplanation", "raisedAt", "acknowledgedBy"];
 
-type ListResponse = { data?: { getPatternAlerts?: { items?: AlertRow[] } } };
 type UpdateResponse = { data?: { updatePatternAlert?: MutationPayload }; errors?: GraphQLError[] };
 
 export function useAlerts() {
@@ -35,8 +35,8 @@ export function useAlerts() {
     try {
       const response = await blocksClient.data
         .collection("PatternAlert", { fields: FIELDS })
-        .list({ pageNo: 1, pageSize: 20, sort: { CreatedDate: -1 } }) as ListResponse;
-      setAlerts(response?.data?.getPatternAlerts?.items ?? []);
+        .list({ pageNo: 1, pageSize: 20, sort: { CreatedDate: -1 } });
+      setAlerts(itemsOrThrow<AlertRow>(response, "getPatternAlerts"));
     } catch (caught) {
       setError((caught as Error).message);
     } finally {

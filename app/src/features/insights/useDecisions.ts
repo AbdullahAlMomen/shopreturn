@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { blocksClient } from "../../lib/blocks/client";
+import { itemsOrThrow } from "../../lib/blocks/readItems";
 import { useMe } from "../../lib/blocks/useMe";
 import { mutationFailed } from "../ops/opsTimeline";
 import type { GraphQLError, MutationPayload } from "../ops/opsTimeline";
@@ -19,7 +20,6 @@ export type DecisionRow = {
 
 const FIELDS = ["alertId", "decisionType", "target", "note", "decidedBy", "decidedAt", "status"];
 
-type ListResponse = { data?: { getDecisions?: { items?: DecisionRow[] } } };
 type InsertResponse = { data?: { insertDecision?: MutationPayload }; errors?: GraphQLError[] };
 type UpdateResponse = { data?: { updateDecision?: MutationPayload }; errors?: GraphQLError[] };
 
@@ -39,8 +39,8 @@ export function useDecisions() {
     try {
       const response = await blocksClient.data
         .collection("Decision", { fields: FIELDS })
-        .list({ pageNo: 1, pageSize: 50, sort: { CreatedDate: -1 } }) as ListResponse;
-      setDecisions(response?.data?.getDecisions?.items ?? []);
+        .list({ pageNo: 1, pageSize: 50, sort: { CreatedDate: -1 } });
+      setDecisions(itemsOrThrow<DecisionRow>(response, "getDecisions"));
     } catch (caught) {
       setError((caught as Error).message);
     } finally {
@@ -50,7 +50,11 @@ export function useDecisions() {
 
   useEffect(() => { void load(); }, [load]);
 
+  // A decider-less decision row is debris the manager cannot delete (no
+  // delete grant on Decision, see the comment above), so refuse to write
+  // one rather than record a decision nobody is accountable for.
   const record = useCallback(async (input: { alertId: string; decisionType: DecisionType; target: string; note: string }): Promise<boolean> => {
+    if (!managerEmail) return false;
     try {
       const response = await blocksClient.data.collection("Decision").create({
         ...input,

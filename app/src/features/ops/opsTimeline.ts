@@ -10,13 +10,18 @@ export type GraphQLError = { message?: string };
 
 export type MutationPayload = { itemId?: string; acknowledged?: boolean } | null | undefined;
 
-// A 200 can still be a failure: check for a GraphQL `errors` array AND a
-// null/unacknowledged mutation payload before trusting any write. Four
-// distinct shapes of this have appeared in this project (see
-// useSubmitReturn.ts, useReviewReturn.ts) -- this is the one checker every
+// A 200 can still be a failure: check for a GraphQL `errors` array, an
+// `isSuccess: false` flag, AND a null/unacknowledged mutation payload before
+// trusting any write. Five distinct shapes of this have appeared in this
+// project (see useSubmitReturn.ts, useReviewReturn.ts, and the SDK passing a
+// 200-with-errors body through unchanged) -- this is the one checker every
 // ops write now shares.
-export function mutationFailed(response: { errors?: GraphQLError[] } | undefined, payload: MutationPayload): boolean {
+export function mutationFailed(
+  response: { errors?: GraphQLError[]; isSuccess?: boolean } | undefined,
+  payload: MutationPayload
+): boolean {
   if (response && Array.isArray(response.errors) && response.errors.length > 0) return true;
+  if (response?.isSuccess === false) return true;
   if (!payload?.itemId || payload.acknowledged === false) return true;
   return false;
 }
