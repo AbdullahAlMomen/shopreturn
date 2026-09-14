@@ -423,10 +423,25 @@ async function main() {
   // it away from customer A. The write hole is real but inert.
   //
   // Passes when A cannot see the forged row; fails when A can. The forged row
-  // is deleted as ops afterwards either way, and A's list is re-checked to
-  // confirm the fixture set is exactly as it started.
+  // is deleted as ops afterwards either way, and A's list is re-checked --
+  // but "re-checked" means a SET comparison against a snapshot taken before
+  // the probe ran, not a hard-coded fixture shape. Customer A legitimately
+  // accumulates more ReturnCase rows over time (the ops console's Task 1
+  // seeded a second one, on order 10-4822, deliberately left awaiting
+  // review), so "customer A owns exactly one row, and it is THE fixture" is
+  // not a stable definition of "the probe left nothing behind" -- it breaks
+  // every time the project legitimately grows a return. "The set of ids
+  // customer A can see is identical before and after" is the actual claim
+  // this assertion needs, and it stays true regardless of how many real
+  // rows customer A owns.
   {
     const label = "[HARM] customerB's forged ReturnCase is invisible to customerA";
+
+    const before = await attempt(() =>
+      blocksA.data.collection("ReturnCase").list({ fields: ["ItemId"] })
+    );
+    const beforeIds = new Set(itemsOf(before.response, "getReturnCases").map((r) => r?.ItemId ?? r?.itemId));
+
     const forge = await attempt(() =>
       blocksB.data.collection("ReturnCase").create({
         customerItemId: customerAItemId,
@@ -461,8 +476,13 @@ async function main() {
       const after = await attempt(() =>
         blocksA.data.collection("ReturnCase").list({ fields: ["ItemId"] })
       );
-      const afterIds = itemsOf(after.response, "getReturnCases").map((r) => r?.ItemId ?? r?.itemId);
-      const restored = afterIds.length === 1 && afterIds[0] === returnCaseItemId;
+      const afterIds = new Set(itemsOf(after.response, "getReturnCases").map((r) => r?.ItemId ?? r?.itemId));
+
+      // A diff is diagnosable; a raw dump is not -- report exactly what the
+      // probe added or lost relative to the pre-probe snapshot.
+      const added = [...afterIds].filter((id) => !beforeIds.has(id));
+      const missing = [...beforeIds].filter((id) => !afterIds.has(id));
+      const restored = added.length === 0 && missing.length === 0;
 
       if (leaked) {
         record(
@@ -476,14 +496,14 @@ async function main() {
           9,
           label,
           false,
-          `hidden from customerA, BUT the fixture set did not come back clean -- customerA now sees [${afterIds.join(", ")}], expected only ${returnCaseItemId}; cleanup: ${cleanup.notes.join(" | ")}`
+          `hidden from customerA, BUT the probe left customerA's ReturnCase set changed -- added:[${added.join(", ")}] missing:[${missing.join(", ")}]; cleanup: ${cleanup.notes.join(" | ")}`
         );
       } else {
         record(
           9,
           label,
           true,
-          `hidden -- forged row ${forgedId} created but invisible to customerA (CreatedBy is the forger); customerA still sees exactly the fixture row; cleanup: ${cleanup.notes.join(" | ")}`
+          `hidden -- forged row ${forgedId} created but invisible to customerA (CreatedBy is the forger); customerA's visible ReturnCase set is unchanged from before the probe; cleanup: ${cleanup.notes.join(" | ")}`
         );
       }
     }
@@ -493,20 +513,31 @@ async function main() {
   // split into `customer-reads-own-orders` (role customer AND
   // customerItemId == UserId) and `staff-reads-all-orders` (ops/manager,
   // unscoped). Customer A has three orders (10-4821, 10-4822, 10-4823);
-  // customer B has exactly one (10-5001) -- non-vacuous because A's three
+  // customer B has at least one (10-5001) -- non-vacuous because A's three
   // demonstrably exist. This isn't a plain "denied or empty" check like 1,
   // 4 and 5: customer B is SUPPOSED to see their own order, so the pass
-  // condition is "sees only their own", not "sees nothing".
+  // condition is "sees their own, and none of A's", not "sees nothing".
+  //
+  // Originally written as `orderNumbers.length === 1 && orderNumbers[0] ===
+  // "10-5001"` -- correct only because customer B happened to own exactly
+  // one order. That's a fixture-shape assumption smuggled into a scoping
+  // check: the day customer B legitimately gets a second order, this would
+  // fail, and it would fail looking like a SCOPING bug (leak) when nothing
+  // had leaked. The property that actually matters is set-based and doesn't
+  // care how many orders either customer owns: none of customer A's known
+  // order numbers may appear in customer B's list, and customer B's own
+  // order must still be present.
   {
-    const label = "customerB lists Order -- sees only their own";
+    const label = "customerB lists Order -- sees their own, none of customerA's";
     const result = await attempt(() => blocksB.data.collection("Order").list({ fields: ["orderNumber"] }));
     const items = result.outcome === "ok" ? itemsOf(result.response, "getOrders") : [];
     const orderNumbers = items.map((item) => item?.orderNumber);
     const leaked = ["10-4821", "10-4822", "10-4823"].filter((n) => orderNumbers.includes(n));
-    const onlyOwn = result.outcome === "ok" && orderNumbers.length === 1 && orderNumbers[0] === "10-5001";
+    const seesOwn = orderNumbers.includes("10-5001");
+    const clean = result.outcome === "ok" && leaked.length === 0 && seesOwn;
 
-    if (onlyOwn) {
-      record(10, label, true, `allowed -- customerB saw exactly [${orderNumbers.join(", ")}]`);
+    if (clean) {
+      record(10, label, true, `allowed -- customerB saw [${orderNumbers.join(", ")}], no customerA orders leaked`);
     } else if (result.outcome !== "ok") {
       record(
         10,
@@ -514,15 +545,15 @@ async function main() {
         false,
         `call failed(${result.outcome}: ${result.message}) -- expected customerB to see their own order 10-5001`
       );
-    } else {
+    } else if (leaked.length > 0) {
       record(
         10,
         label,
         false,
-        `customerB saw [${orderNumbers.join(", ")}]${
-          leaked.length ? `; LEAKED customerA orders: [${leaked.join(", ")}]` : " -- missing their own order 10-5001"
-        }`
+        `LEAKED customerA orders into customerB's list: [${leaked.join(", ")}]; customerB saw [${orderNumbers.join(", ")}]`
       );
+    } else {
+      record(10, label, false, `customerB saw [${orderNumbers.join(", ")}] -- missing their own order 10-5001`);
     }
   }
 
