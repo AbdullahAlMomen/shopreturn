@@ -145,7 +145,7 @@ export function OpsQueuePage() {
               <span>{t("ops.columns.review")}</span>
             </div>
             {controls.filteredCount === 0 ? (
-              <div className="ops-queue-no-matches">{t("table.noMatches")}</div>
+              <div className="ops-queue-no-matches" role="status">{t("table.noMatches")}</div>
             ) : controls.visibleRows.map((row) => {
               const pending = isAwaitingReview(row);
               return (

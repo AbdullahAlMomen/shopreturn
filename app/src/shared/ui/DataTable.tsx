@@ -37,7 +37,10 @@ export function DataTable<T>({ columns, rows, searchFields, pageSize, searchPlac
           <tbody>
             {showControls && controls.filteredCount === 0 ? (
               <tr>
-                <td colSpan={columns.length}>{t("table.noMatches")}</td>
+                {/* role="status" goes on a span, not the td itself, so the
+                    cell keeps its plain table semantics and only the text
+                    becomes an announced live region. */}
+                <td colSpan={columns.length}><span role="status">{t("table.noMatches")}</span></td>
               </tr>
             ) : (
               displayRows.map((row, index) => (

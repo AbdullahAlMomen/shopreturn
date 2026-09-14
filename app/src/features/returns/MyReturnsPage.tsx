@@ -24,6 +24,15 @@ function goToReturn(itemId: string) {
   window.dispatchEvent(new PopStateEvent("popstate"));
 }
 
+// Hoisted to a stable module-level reference (same pattern as
+// OpsQueuePage.tsx's opsSearchFields) -- an inline arrow passed as a prop is
+// a new function identity every render, which would defeat the useMemo
+// inside useTableControls and re-filter on every keystroke's re-render for
+// no reason.
+function returnsSearchFields(row: ReturnRow): (string | number | undefined)[] {
+  return [row.orderNumber, row.productName, row.status];
+}
+
 function statusTone(status?: string): "good" | "warn" | "neutral" {
   if (status === "REFUNDED") return "good";
   if (status === "REJECTED") return "warn";
@@ -103,7 +112,7 @@ export function MyReturnsPage() {
         <DataTable
           columns={columns}
           rows={returns}
-          searchFields={(row) => [row.orderNumber, row.productName, row.status]}
+          searchFields={returnsSearchFields}
           pageSize={10}
         />
       )}
