@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { blocksClient } from "../../lib/blocks/client";
+import { insertTimelineEntry, updateReturnCaseStatus } from "./opsTimeline";
 
 // Field names below are copied verbatim from blocks/data/schemas/ReturnCase.json
 // -- note the asymmetry the spec itself defines: the reason's confirmed
@@ -36,6 +37,32 @@ const RETURN_CASE_FIELDS = [
   "confirmedReason", "restockable", "courierClaim", "opsCorrectedFields", "rejectionReason", "CreatedDate"
 ];
 
+// Ops sees the whole timeline (internal entries included -- ops-reads-all-
+// timeline in rules.json has no isCustomerVisible predicate, unlike the
+// customer-facing policy). Read-only here: nothing on this screen ever
+// updates or deletes a ReturnTimeline row, per the append-only rule.
+export type TimelineEntry = {
+  ItemId: string;
+  at?: string | null;
+  status?: string;
+  message?: string;
+  isCustomerVisible?: boolean;
+  authorRole?: string | null;
+  CreatedDate?: string;
+};
+
+const TIMELINE_FIELDS = ["at", "status", "message", "isCustomerVisible", "authorRole", "CreatedDate"];
+
+export type RefundRow = {
+  ItemId: string;
+  method?: string;
+  amount?: number;
+  reference?: string;
+  paidAt?: string;
+};
+
+const REFUND_FIELDS = ["method", "amount", "reference", "paidAt"];
+
 export type AcceptInput = {
   confirmedReason: string;
   restockable: boolean;
@@ -54,54 +81,36 @@ export type RejectInput = {
 // hook's answer to "there is no transaction across the two writes": the
 // ReturnCase update and the ReturnTimeline insert are tracked as separate
 // outcomes, and a failure of the second never rolls back or re-attempts
-// the first.
+// the first. `status` widened from the original ACCEPTED|REJECTED union
+// (Task 2) to `string` -- Task 3 reuses this exact mechanism for
+// markReceived/startRefund, which land on RECEIVED/REFUND_PROCESSING.
 type PendingNotify = {
   returnId: string;
   customerItemId: string;
-  status: "ACCEPTED" | "REJECTED";
+  status: string;
   message: string;
 };
 
 export type SubmitStage = "update-failed" | "notify-failed" | undefined;
 
-type GraphQLError = { message?: string };
-type UpdateReturnCaseResponse = {
-  data?: { updateReturnCase?: { acknowledged?: boolean; itemId?: string } | null };
-  errors?: GraphQLError[];
-};
-type InsertReturnTimelineResponse = {
-  data?: { insertReturnTimeline?: { acknowledged?: boolean; itemId?: string } | null };
-  errors?: GraphQLError[];
-};
-
-// A 200 can still be a failure: check for a GraphQL `errors` array AND a
-// null mutation payload before trusting any write (per task brief and
-// useSubmitReturn.ts's isDuplicateOrderError note).
-function mutationFailed(response: { errors?: GraphQLError[] } | undefined, payload: { itemId?: string; acknowledged?: boolean } | null | undefined): boolean {
-  if (response && Array.isArray(response.errors) && response.errors.length > 0) return true;
-  if (!payload?.itemId || payload.acknowledged === false) return true;
-  return false;
-}
-
-async function insertTimelineEntry(input: PendingNotify): Promise<boolean> {
-  const response = (await blocksClient.data.collection("ReturnTimeline").create({
-    returnId: input.returnId,
-    // Copied from the parent ReturnCase, not the caller's own identity --
-    // child-row read policies key on customerItemId, not CreatedBy (unlike
-    // ReturnCase itself). Using anything else makes the entry permanently
-    // invisible to the customer it's meant for.
-    customerItemId: input.customerItemId,
-    at: new Date().toISOString(),
-    status: input.status,
-    isCustomerVisible: true,
-    authorRole: "ops",
-    message: input.message
-  })) as InsertReturnTimelineResponse;
-  return !mutationFailed(response, response?.data?.insertReturnTimeline);
+// Publishes a customer-visible ReturnTimeline entry after a status write
+// that already committed. On failure, the caller is responsible for parking
+// `pendingNotify` -- kept here as the one place that performs the insert so
+// accept/reject/markReceived/startRefund all fail the same way.
+async function publish(setSubmitStage: (stage: SubmitStage) => void, setPendingNotify: (p: PendingNotify | undefined) => void, notify: PendingNotify): Promise<boolean> {
+  const notified = await insertTimelineEntry(notify);
+  if (!notified) {
+    setSubmitStage("notify-failed");
+    setPendingNotify(notify);
+    return false;
+  }
+  return true;
 }
 
 export function useReviewReturn(itemId?: string) {
   const [returnCase, setReturnCase] = useState<ReviewReturnCase>();
+  const [timeline, setTimeline] = useState<TimelineEntry[]>([]);
+  const [refund, setRefund] = useState<RefundRow>();
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string>();
 
@@ -115,6 +124,8 @@ export function useReviewReturn(itemId?: string) {
   const load = useCallback(async () => {
     if (!itemId) {
       setReturnCase(undefined);
+      setTimeline([]);
+      setRefund(undefined);
       setLoading(false);
       setLoadError(undefined);
       return;
@@ -122,11 +133,25 @@ export function useReviewReturn(itemId?: string) {
     setLoading(true);
     setLoadError(undefined);
     try {
-      const response = (await blocksClient.data
-        .collection("ReturnCase", { fields: RETURN_CASE_FIELDS })
-        .get(itemId)) as { data?: { getReturnCases?: { items?: ReviewReturnCase[] } } };
+      const [caseResponse, timelineResponse, refundResponse] = await Promise.all([
+        blocksClient.data
+          .collection("ReturnCase", { fields: RETURN_CASE_FIELDS })
+          .get(itemId) as Promise<{ data?: { getReturnCases?: { items?: ReviewReturnCase[] } } }>,
+        blocksClient.data
+          .collection("ReturnTimeline", { fields: TIMELINE_FIELDS })
+          .list({ filter: { returnId: itemId }, sort: { at: 1 }, pageNo: 1, pageSize: 100 }) as Promise<{
+            data?: { getReturnTimelines?: { items?: TimelineEntry[] } };
+          }>,
+        blocksClient.data
+          .collection("Refund", { fields: REFUND_FIELDS })
+          .list({ filter: { returnId: itemId }, pageNo: 1, pageSize: 5 }) as Promise<{
+            data?: { getRefunds?: { items?: RefundRow[] } };
+          }>
+      ]);
       // get() returns a list envelope with one item, not a bare object.
-      setReturnCase(response?.data?.getReturnCases?.items?.[0]);
+      setReturnCase(caseResponse?.data?.getReturnCases?.items?.[0]);
+      setTimeline(timelineResponse?.data?.getReturnTimelines?.items ?? []);
+      setRefund(refundResponse?.data?.getRefunds?.items?.[0]);
     } catch (caught) {
       setLoadError((caught as Error).message);
     } finally {
@@ -141,15 +166,15 @@ export function useReviewReturn(itemId?: string) {
     setSubmitting(true);
     setSubmitStage(undefined);
     try {
-      const updateResponse = (await blocksClient.data.collection("ReturnCase").update(itemId, {
+      const updated = await updateReturnCaseStatus(itemId, {
         confirmedReason: input.confirmedReason,
         restockable: input.restockable,
         courierClaim: input.courierClaim,
         opsCorrectedFields: input.opsCorrectedFields,
         status: "ACCEPTED"
-      })) as UpdateReturnCaseResponse;
+      });
 
-      if (mutationFailed(updateResponse, updateResponse?.data?.updateReturnCase)) {
+      if (!updated) {
         setSubmitStage("update-failed");
         return false;
       }
@@ -160,18 +185,9 @@ export function useReviewReturn(itemId?: string) {
         status: "ACCEPTED",
         message: input.message
       };
-      const notified = await insertTimelineEntry(notify);
-      if (!notified) {
-        // Step 1 (ReturnCase) is already committed. Do NOT retry it, do NOT
-        // roll it back -- surface the gap explicitly instead.
-        setSubmitStage("notify-failed");
-        setPendingNotify(notify);
-        await load();
-        return false;
-      }
-
+      const ok = await publish(setSubmitStage, setPendingNotify, notify);
       await load();
-      return true;
+      return ok;
     } catch (caught) {
       setSubmitStage("update-failed");
       void caught;
@@ -186,12 +202,12 @@ export function useReviewReturn(itemId?: string) {
     setSubmitting(true);
     setSubmitStage(undefined);
     try {
-      const updateResponse = (await blocksClient.data.collection("ReturnCase").update(itemId, {
+      const updated = await updateReturnCaseStatus(itemId, {
         status: "REJECTED",
         rejectionReason: input.rejectionReason
-      })) as UpdateReturnCaseResponse;
+      });
 
-      if (mutationFailed(updateResponse, updateResponse?.data?.updateReturnCase)) {
+      if (!updated) {
         setSubmitStage("update-failed");
         return false;
       }
@@ -202,16 +218,9 @@ export function useReviewReturn(itemId?: string) {
         status: "REJECTED",
         message: input.rejectionReason
       };
-      const notified = await insertTimelineEntry(notify);
-      if (!notified) {
-        setSubmitStage("notify-failed");
-        setPendingNotify(notify);
-        await load();
-        return false;
-      }
-
+      const ok = await publish(setSubmitStage, setPendingNotify, notify);
       await load();
-      return true;
+      return ok;
     } catch (caught) {
       setSubmitStage("update-failed");
       void caught;
@@ -220,6 +229,38 @@ export function useReviewReturn(itemId?: string) {
       setSubmitting(false);
     }
   }, [itemId, returnCase, load]);
+
+  // markReceived (-> RECEIVED) and startRefund (-> REFUND_PROCESSING) are
+  // the two guarded transitions that carry no child row of their own --
+  // just a status write plus the one customer-visible timeline entry the
+  // brief requires per action. Same non-transactional handling as
+  // accept/reject: the status write, once it lands, is never retried or
+  // rolled back; only the timeline insert is retried on failure.
+  const transitionTo = useCallback(async (status: string, message: string): Promise<boolean> => {
+    if (!itemId || !returnCase?.customerItemId) return false;
+    setSubmitting(true);
+    setSubmitStage(undefined);
+    try {
+      const updated = await updateReturnCaseStatus(itemId, { status });
+      if (!updated) {
+        setSubmitStage("update-failed");
+        return false;
+      }
+      const notify: PendingNotify = { returnId: itemId, customerItemId: returnCase.customerItemId, status, message };
+      const ok = await publish(setSubmitStage, setPendingNotify, notify);
+      await load();
+      return ok;
+    } catch (caught) {
+      setSubmitStage("update-failed");
+      void caught;
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  }, [itemId, returnCase, load]);
+
+  const markReceived = useCallback((message: string) => transitionTo("RECEIVED", message), [transitionTo]);
+  const startRefund = useCallback((message: string) => transitionTo("REFUND_PROCESSING", message), [transitionTo]);
 
   // Retries ONLY the ReturnTimeline insert -- the ReturnCase write that
   // already succeeded is never repeated or undone.
@@ -241,8 +282,8 @@ export function useReviewReturn(itemId?: string) {
   }, [pendingNotify, load]);
 
   return {
-    returnCase, loading, loadError, refetch: load,
-    accept, reject, retryNotify,
+    returnCase, timeline, refund, loading, loadError, refetch: load,
+    accept, reject, markReceived, startRefund, retryNotify,
     submitting, submitStage, pendingNotify
   };
 }

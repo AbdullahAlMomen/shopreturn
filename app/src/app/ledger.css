@@ -110,11 +110,20 @@
 .ledger-form { display: grid; gap: 22px; margin-top: 28px; }
 .ledger-field { display: grid; gap: 6px; }
 .ledger-field-label { color: var(--ledger-muted); font-family: var(--ledger-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; }
-.ledger-field input[type="text"], .ledger-field textarea, .ledger-field select {
+.ledger-field input[type="text"], .ledger-field input[type="number"], .ledger-field textarea, .ledger-field select {
   background: transparent; border: 0; border-bottom: 1px solid var(--ledger-rule); color: var(--ledger-ink);
   font-family: var(--ledger-serif); font-size: 15px; padding: 8px 2px; transition: border-color 0.15s ease; width: 100%;
 }
-.ledger-field input[type="text"]:focus, .ledger-field textarea:focus, .ledger-field select:focus { border-bottom-color: var(--ledger-ink); outline: none; }
+.ledger-field input[type="text"]:focus, .ledger-field input[type="number"]:focus, .ledger-field textarea:focus, .ledger-field select:focus { border-bottom-color: var(--ledger-ink); outline: none; }
+
+/* Task 3 -- guarded status-transition sections (Mark received / Record
+   inspection / Start refund / Record refund) share the review screen's
+   form language rather than introducing a second visual system. */
+.ledger-case-section { margin-top: 28px; }
+.ledger-case-title { font-family: var(--ledger-serif); font-size: 18px; font-weight: 400; margin: 0 0 4px; }
+.ledger-case-lede { color: var(--ledger-muted); font-family: var(--ledger-serif); font-size: 13.5px; font-style: italic; margin: 0 0 18px; }
+.ledger-terminal-summary { margin: 24px 0 0; }
+.ledger-terminal-summary p:not(.ledger-label) { color: var(--ledger-ink); font-family: var(--ledger-serif); font-size: 14px; line-height: 1.6; margin: 4px 0 0; }
 .ledger-field textarea { line-height: 1.6; min-height: 110px; resize: vertical; }
 .ledger-field select { cursor: pointer; }
 .ledger-field select:disabled { cursor: not-allowed; opacity: 0.6; }
