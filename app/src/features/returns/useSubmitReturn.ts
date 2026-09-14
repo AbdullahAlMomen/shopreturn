@@ -6,20 +6,6 @@ import { blocksClient } from "../../lib/blocks/client";
 // name is "Default" (capital D) -- the README/plan example's "default" does not exist here.
 const STORAGE_CONFIGURATION_NAME = "Default";
 
-type OrderMatch = {
-  orderNumber?: string;
-  sku?: string;
-  productName?: string;
-  unitPrice?: number;
-  area?: string;
-  courier?: string;
-};
-
-// Everything ops and the fixture need to render a real product line (Task 1
-// found the fixture had `sku` but not the rest, and the row rendered
-// "Unknown product") -- copied from the matched Order onto the new ReturnCase.
-const ORDER_FIELDS = ["orderNumber", "sku", "productName", "unitPrice", "area", "courier"];
-
 type PresignedUploadResponse = {
   uploadUrl?: string;
   fileId?: string;
@@ -72,8 +58,17 @@ async function uploadPhotos(files: File[]): Promise<UploadOutcome> {
   return { fileIds, failures };
 }
 
+// The order the customer picked from the eligible-orders dropdown
+// (useEligibleOrders.ts) -- its fields are carried straight onto the new
+// ReturnCase, exactly as the old free-text lookup used to copy them from
+// the Order row it matched.
 export type SubmitReturnInput = {
   orderNumber: string;
+  sku?: string;
+  productName?: string;
+  unitPrice?: number;
+  area?: string;
+  courier?: string;
   rawCustomerText: string;
   photos: File[];
 };
@@ -83,6 +78,31 @@ export type SubmitReturnResult = {
   photoFailures: string[];
 };
 
+type GraphQLError = { message?: string; extensions?: { code?: string; validationErrors?: string[] } };
+
+type CreateReturnCaseResponse = {
+  data?: { insertReturnCase?: { acknowledged?: boolean; itemId?: string } | null };
+  errors?: GraphQLError[];
+};
+
+// `ReturnCase.orderNumber` is `isUniqueData: true` and enforced server-side,
+// but a violation does NOT throw and is NOT a non-2xx response -- it comes
+// back HTTP 200 with a GraphQL `errors` array (code VALIDATION_ERROR,
+// validationType Unique on the orderNumber field) and
+// `data.insertReturnCase: null`. This distinguishes that specific rejection
+// from any other create failure so the UI can show a precise message
+// instead of a raw server string.
+function isDuplicateOrderError(errors: GraphQLError[]): boolean {
+  return errors.some((graphQLError) => {
+    const message = graphQLError?.message ?? "";
+    const validationErrors = graphQLError?.extensions?.validationErrors ?? [];
+    return (
+      (message.includes("orderNumber") && /already exists/i.test(message)) ||
+      validationErrors.some((entry) => entry.includes("orderNumber"))
+    );
+  });
+}
+
 export function useSubmitReturn() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string>();
@@ -91,19 +111,6 @@ export function useSubmitReturn() {
     setSubmitting(true);
     setError(undefined);
     try {
-      const orderNumber = input.orderNumber.trim();
-
-      const orderResponse = (await blocksClient.data
-        .collection("Order", { fields: ORDER_FIELDS })
-        .list({ filter: { orderNumber }, pageNo: 1, pageSize: 1 })) as {
-          data?: { getOrders?: { items?: OrderMatch[] } };
-        };
-      const order = orderResponse?.data?.getOrders?.items?.[0];
-      if (!order) {
-        setError(`no-order:${orderNumber}`);
-        return undefined;
-      }
-
       // The read policy keys on the server-set CreatedBy, not on this field --
       // see the security note in NewReturnPage.tsx. customerItemId is still set
       // because child-row policies and ops tooling key on it, and the two must
@@ -120,12 +127,12 @@ export function useSubmitReturn() {
 
       const payload: Record<string, unknown> = {
         customerItemId,
-        orderNumber: order.orderNumber ?? orderNumber,
-        sku: order.sku,
-        productName: order.productName,
-        unitPrice: order.unitPrice,
-        area: order.area,
-        courier: order.courier,
+        orderNumber: input.orderNumber,
+        sku: input.sku,
+        productName: input.productName,
+        unitPrice: input.unitPrice,
+        area: input.area,
+        courier: input.courier,
         rawCustomerText: input.rawCustomerText,
         // Exactly "SUBMITTED". Every ai* and confirmed* field is left unset --
         // those belong to the agent and to ops respectively.
@@ -133,9 +140,18 @@ export function useSubmitReturn() {
       };
       if (photoFileIds.length > 0) payload.photoFileIds = photoFileIds;
 
-      const createResponse = (await blocksClient.data.collection("ReturnCase").create(payload)) as {
-        data?: { insertReturnCase?: { acknowledged?: boolean; itemId?: string } };
-      };
+      const createResponse = (await blocksClient.data
+        .collection("ReturnCase")
+        .create(payload)) as CreateReturnCaseResponse;
+
+      // Check for a GraphQL `errors` array BEFORE looking at `data` -- a 200
+      // response can carry both a populated `errors` array and a null
+      // `data.insertReturnCase` at once, and only the errors array says why.
+      if (Array.isArray(createResponse?.errors) && createResponse.errors.length > 0) {
+        setError(isDuplicateOrderError(createResponse.errors) ? "duplicate-order" : "create-failed");
+        return undefined;
+      }
+
       const inserted = createResponse?.data?.insertReturnCase;
       if (!inserted?.itemId || inserted.acknowledged === false) {
         setError("create-failed");

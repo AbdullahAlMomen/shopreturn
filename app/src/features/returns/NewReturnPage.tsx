@@ -2,8 +2,13 @@ import { ArrowLeft, Paperclip, X } from "lucide-react";
 import { useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { useT } from "../../lib/i18n/LocalizationProvider";
+import type { TranslationKey } from "../../lib/i18n/dictionary";
 import { useRoles } from "../../lib/blocks/useRoles";
 import { EmptyState } from "../../shared/ui/EmptyState";
+import { ErrorState } from "../../shared/ui/ErrorState";
+import { Skeleton } from "../../shared/ui/Skeleton";
+import { useEligibleOrders } from "./useEligibleOrders";
+import type { EligibleOrder } from "./useEligibleOrders";
 import { useSubmitReturn } from "./useSubmitReturn";
 import type { SubmitReturnResult } from "./useSubmitReturn";
 
@@ -20,12 +25,21 @@ function goToMyReturns() {
   window.dispatchEvent(new PopStateEvent("popstate"));
 }
 
+// A human-recognisable option label -- order number, product, price -- never
+// a bare itemId/uuid.
+function formatOrderOption(order: EligibleOrder, t: (key: TranslationKey, fallback?: string) => string): string {
+  const product = order.productName || t("returns.unknownProduct");
+  const price = typeof order.unitPrice === "number" ? `৳${order.unitPrice.toLocaleString("en-US")}` : undefined;
+  return [order.orderNumber, product, price].filter(Boolean).join(" — ");
+}
+
 export function NewReturnPage() {
   const { t } = useT();
   const { isCustomer, roles } = useRoles();
+  const { orders, loading: ordersLoading, error: ordersError, refetch: refetchOrders } = useEligibleOrders();
   const { submit, submitting, error } = useSubmitReturn();
 
-  const [orderNumber, setOrderNumber] = useState("");
+  const [selectedOrderNumber, setSelectedOrderNumber] = useState("");
   const [description, setDescription] = useState("");
   const [photos, setPhotos] = useState<File[]>([]);
   const [validationError, setValidationError] = useState<string>();
@@ -45,15 +59,24 @@ export function NewReturnPage() {
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
 
-    const trimmedOrder = orderNumber.trim();
+    const selectedOrder = orders.find((order) => order.orderNumber === selectedOrderNumber);
     const trimmedDescription = description.trim();
-    if (!trimmedOrder || !trimmedDescription) {
+    if (!selectedOrder || !trimmedDescription) {
       setValidationError(t("returns.new.validation"));
       return;
     }
     setValidationError(undefined);
 
-    const outcome = await submit({ orderNumber: trimmedOrder, rawCustomerText: trimmedDescription, photos });
+    const outcome = await submit({
+      orderNumber: selectedOrder.orderNumber,
+      sku: selectedOrder.sku,
+      productName: selectedOrder.productName,
+      unitPrice: selectedOrder.unitPrice,
+      area: selectedOrder.area,
+      courier: selectedOrder.courier,
+      rawCustomerText: trimmedDescription,
+      photos
+    });
     if (!outcome) return;
 
     if (outcome.photoFailures.length === 0) {
@@ -69,10 +92,7 @@ export function NewReturnPage() {
 
   function errorMessage(): string | undefined {
     if (!error) return undefined;
-    if (error.startsWith("no-order:")) {
-      const order = error.slice("no-order:".length);
-      return t("returns.new.orderNotFound").replace("{order}", order);
-    }
+    if (error === "duplicate-order") return t("returns.new.duplicateOrder");
     if (error === "no-session") return t("returns.new.noSession");
     if (error === "create-failed") return t("returns.new.submitFailed");
     return error;
@@ -139,19 +159,36 @@ export function NewReturnPage() {
               </button>
             </div>
           </div>
+        ) : ordersLoading ? (
+          <div className="panel">
+            <Skeleton className="skeleton-line" style={{ width: "100%" }} />
+            <Skeleton className="skeleton-line" style={{ width: "90%" }} />
+            <Skeleton className="skeleton-line" style={{ width: "95%" }} />
+          </div>
+        ) : ordersError ? (
+          <ErrorState message={t("returns.new.ordersLoadError")} onRetry={refetchOrders} />
+        ) : orders.length === 0 ? (
+          <EmptyState
+            title={t("returns.new.noEligibleOrders.title")}
+            description={t("returns.new.noEligibleOrders.description")}
+          />
         ) : (
           <form className="ledger-form" onSubmit={onSubmit}>
             <div className="ledger-field">
-              <label className="ledger-field-label" htmlFor="order-number">{t("returns.new.orderNumberLabel")}</label>
-              <input
-                id="order-number"
-                type="text"
-                className="mono"
-                placeholder={t("returns.new.orderNumberPlaceholder")}
-                value={orderNumber}
-                onChange={(event) => setOrderNumber(event.target.value)}
+              <label className="ledger-field-label" htmlFor="order-select">{t("returns.new.orderNumberLabel")}</label>
+              <select
+                id="order-select"
+                value={selectedOrderNumber}
+                onChange={(event) => setSelectedOrderNumber(event.target.value)}
                 disabled={submitting}
-              />
+              >
+                <option value="" disabled>{t("returns.new.orderSelectPlaceholder")}</option>
+                {orders.map((order) => (
+                  <option key={order.orderNumber} value={order.orderNumber}>
+                    {formatOrderOption(order, t)}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="ledger-field">

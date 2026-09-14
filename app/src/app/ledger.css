@@ -110,12 +110,14 @@
 .ledger-form { display: grid; gap: 22px; margin-top: 28px; }
 .ledger-field { display: grid; gap: 6px; }
 .ledger-field-label { color: var(--ledger-muted); font-family: var(--ledger-mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; }
-.ledger-field input[type="text"], .ledger-field textarea {
+.ledger-field input[type="text"], .ledger-field textarea, .ledger-field select {
   background: transparent; border: 0; border-bottom: 1px solid var(--ledger-rule); color: var(--ledger-ink);
   font-family: var(--ledger-serif); font-size: 15px; padding: 8px 2px; transition: border-color 0.15s ease; width: 100%;
 }
-.ledger-field input[type="text"]:focus, .ledger-field textarea:focus { border-bottom-color: var(--ledger-ink); outline: none; }
+.ledger-field input[type="text"]:focus, .ledger-field textarea:focus, .ledger-field select:focus { border-bottom-color: var(--ledger-ink); outline: none; }
 .ledger-field textarea { line-height: 1.6; min-height: 110px; resize: vertical; }
+.ledger-field select { cursor: pointer; }
+.ledger-field select:disabled { cursor: not-allowed; opacity: 0.6; }
 .ledger-hint { color: var(--ledger-faint); font-family: var(--ledger-serif); font-size: 12.5px; font-style: italic; }
 .ledger-photo-input-label {
   align-items: center; border: 1px dashed var(--ledger-rule); border-radius: 4px; color: var(--ledger-muted);
