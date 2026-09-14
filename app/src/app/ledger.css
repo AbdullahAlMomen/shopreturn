@@ -151,3 +151,46 @@
   .ledger-form-actions { justify-content: stretch; }
   .ledger-submit { width: 100%; }
 }
+
+/* Ops queue (ops console, Task 1) -- the design review's agreed motif: the
+   same ledger tokens/typography as the customer detail view, but a working
+   tool for someone handling dozens of cases a day reads that motif at much
+   higher density. .ledger-row uses 14px vertical padding per row (roughly
+   28px of rhythm with its border); these rows run about half that. */
+.ops-queue { background: var(--ledger-surface); border: 1px solid var(--ledger-rule); border-radius: 6px; overflow-x: auto; }
+.ops-queue-head, .ops-queue-row {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 84px 1.1fr 1.5fr 1.2fr 110px 76px 120px;
+  min-width: 760px;
+  padding: 7px 16px;
+}
+.ops-queue-head {
+  border-bottom: 2px solid var(--ledger-ink);
+  color: var(--ledger-muted);
+  font-family: var(--ledger-mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.ops-queue-row { border-top: 1px solid var(--ledger-rule); font-family: var(--ledger-serif); font-size: 13px; }
+/* The queue's entire purpose: a return nobody has reviewed yet must be
+   obvious at a glance, not just labelled in one column. */
+.ops-queue-row-pending { background: var(--ledger-band); box-shadow: inset 3px 0 0 var(--ledger-warn); }
+.ops-queue-order { color: var(--ledger-ink); font-family: var(--ledger-mono); font-size: 12px; white-space: nowrap; }
+.ops-queue-product, .ops-queue-quote { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ops-queue-product { color: var(--ledger-ink); }
+.ops-queue-quote { color: var(--ledger-muted); font-style: italic; }
+.ops-queue-ai { display: grid; font-family: var(--ledger-mono); font-size: 11px; gap: 1px; }
+.ops-queue-ai-reason { color: var(--ledger-ink); font-weight: 600; letter-spacing: 0.02em; }
+.ops-queue-ai-confidence { color: var(--ledger-faint); }
+.ops-queue-ai-empty { color: var(--ledger-faint); font-family: var(--ledger-mono); font-size: 11px; font-style: italic; }
+.ops-queue-status { font-family: var(--ledger-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; white-space: nowrap; }
+.ops-queue-age { color: var(--ledger-muted); font-family: var(--ledger-mono); font-size: 11px; white-space: nowrap; }
+.ops-queue-review {
+  border-radius: 999px; font-family: var(--ledger-mono); font-size: 10px; font-weight: 700;
+  justify-self: start; letter-spacing: 0.06em; padding: 3px 9px; text-transform: uppercase; white-space: nowrap;
+}
+.ops-queue-review-pending { background: var(--ledger-warn); color: var(--ledger-surface); }
+.ops-queue-review-done { background: transparent; border: 1px solid var(--ledger-rule); color: var(--ledger-faint); }

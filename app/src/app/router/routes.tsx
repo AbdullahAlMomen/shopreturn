@@ -9,12 +9,14 @@ import { ProfilePage } from "../../features/profile/ProfilePage";
 import { MyReturnsPage } from "../../features/returns/MyReturnsPage";
 import { NewReturnPage } from "../../features/returns/NewReturnPage";
 import { ReturnDetailPage } from "../../features/returns/ReturnDetailPage";
+import { OpsQueuePage } from "../../features/ops/OpsQueuePage";
 
 const protectedRoutes = {
   "/": ProfilePage,
   "/error": ErrorPage,
   "/returns": MyReturnsPage,
-  "/returns/new": NewReturnPage
+  "/returns/new": NewReturnPage,
+  "/ops": OpsQueuePage
 };
 
 // "/returns" resolves to two different pages depending on the query string.

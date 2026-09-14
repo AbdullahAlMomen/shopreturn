@@ -1,11 +1,14 @@
-import { FilePlus2, PackageOpen, UserRound } from "lucide-react";
+import { ClipboardList, FilePlus2, PackageOpen, UserRound } from "lucide-react";
 
 // `requiresRole`, where present, is UX-only: it hides an affordance the
 // server would reject anyway (see blocks/data/rules.json -- "New return"
 // is gated to the customer role there). It is not itself an access check;
-// the server remains the only enforcement boundary.
+// the server remains the only enforcement boundary. "/ops" is gated the
+// same way for the same reason -- and, deliberately, only to "ops": manager
+// gets analytics, not this operational queue (spec keeps the two separate).
 export const navItems = [
   { href: "/", labelKey: "nav.profile", icon: UserRound, requiresRole: undefined },
   { href: "/returns", labelKey: "nav.returns", icon: PackageOpen, requiresRole: undefined },
-  { href: "/returns/new", labelKey: "nav.newReturn", icon: FilePlus2, requiresRole: "customer" }
+  { href: "/returns/new", labelKey: "nav.newReturn", icon: FilePlus2, requiresRole: "customer" },
+  { href: "/ops", labelKey: "nav.ops", icon: ClipboardList, requiresRole: "ops" }
 ] as const;
