@@ -287,3 +287,12 @@
 @media (max-width: 480px) {
   .ledger-sentence { font-size: 15.5px; line-height: 2.3; }
 }
+
+/* ---- Ops queue scope toggle ------------------------------------------ */
+.ops-scope { align-items: center; display: flex; gap: 6px; }
+.ops-scope-option {
+  background: transparent; border: 1px solid var(--ledger-rule); border-radius: 2px;
+  color: var(--ledger-muted); cursor: pointer; font-family: var(--ledger-mono);
+  font-size: 12px; letter-spacing: 0.04em; padding: 6px 10px;
+}
+.ops-scope-option-active { border-color: var(--ledger-ink); color: var(--ledger-ink); font-weight: 600; }

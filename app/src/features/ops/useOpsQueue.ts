@@ -35,7 +35,17 @@ const FIELDS = [
 // useReturnDetail.ts) is confirmed live to return newest-first. `0` 400s
 // ("Unexpected Execution Error"); `1` is ascending. -1 is what this hook
 // uses. See task-1-report.md for the raw probe output.
-export function useOpsQueue() {
+export type QueueScope = "open" | "all";
+
+// Terminal statuses leave the default queue: a refunded or rejected case is
+// history, not work. Filtered server-side (Mongo-style $nin, confirmed live)
+// rather than client-side, because the queue fetches one page -- filtering
+// that page in the browser would still let open cases fall off its end.
+// $nin also matches rows with no status at all, which is what we want: a
+// case in an unexpected state should surface, not vanish.
+const TERMINAL_STATUSES = ["REFUNDED", "REJECTED"];
+
+export function useOpsQueue(scope: QueueScope) {
   const [returns, setReturns] = useState<OpsReturnRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
@@ -46,7 +56,12 @@ export function useOpsQueue() {
     try {
       const response = await blocksClient.data
         .collection("ReturnCase", { fields: FIELDS })
-        .list({ pageNo: 1, pageSize: 50, sort: { CreatedDate: -1 } }) as {
+        .list({
+          pageNo: 1,
+          pageSize: 50,
+          sort: { CreatedDate: -1 },
+          ...(scope === "open" ? { filter: { status: { $nin: TERMINAL_STATUSES } } } : {})
+        }) as {
           data?: { getReturnCases?: { items?: OpsReturnRow[] } };
         };
       setReturns(response?.data?.getReturnCases?.items ?? []);
@@ -55,7 +70,7 @@ export function useOpsQueue() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [scope]);
 
   useEffect(() => { void load(); }, [load]);
 

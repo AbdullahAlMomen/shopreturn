@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { ClipboardList, RefreshCw } from "lucide-react";
 import { ActionButton } from "../../shared/ui/ActionButton";
 import { EmptyState } from "../../shared/ui/EmptyState";
@@ -8,7 +9,7 @@ import { useT } from "../../lib/i18n/LocalizationProvider";
 import type { TranslationKey } from "../../lib/i18n/dictionary";
 import { useRoles } from "../../lib/blocks/useRoles";
 import { useOpsQueue } from "./useOpsQueue";
-import type { OpsReturnRow } from "./useOpsQueue";
+import type { OpsReturnRow, QueueScope } from "./useOpsQueue";
 
 // Same pushState + synthetic popstate pattern as NewReturnPage's
 // goToReturn() -- the hand-rolled router only matches pathname, so this
@@ -43,7 +44,8 @@ function isAwaitingReview(row: OpsReturnRow): boolean {
 export function OpsQueuePage() {
   const { t } = useT();
   const { hasRole, isLoading: rolesLoading, roles } = useRoles();
-  const { returns, loading, error, refetch } = useOpsQueue();
+  const [scope, setScope] = useState<QueueScope>("open");
+  const { returns, loading, error, refetch } = useOpsQueue(scope);
 
   // UX-only guard, same shape as NewReturnPage's customer-only gate: the
   // sidebar already hides this route for non-ops (see navItems.ts), but
@@ -83,7 +85,22 @@ export function OpsQueuePage() {
       <PageHeader
         title={t("ops.title")}
         subtitle={t("ops.subtitle")}
-        actions={<ActionButton variant="icon" onClick={() => refetch()} title={t("common.refresh")} icon={<RefreshCw size={18} />} />}
+        actions={
+          <div className="ops-scope" role="group" aria-label={t("ops.scope.label")}>
+            {(["open", "all"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                className={scope === option ? "ops-scope-option ops-scope-option-active" : "ops-scope-option"}
+                aria-pressed={scope === option}
+                onClick={() => setScope(option)}
+              >
+                {t(option === "open" ? "ops.scope.open" : "ops.scope.all")}
+              </button>
+            ))}
+            <ActionButton variant="icon" onClick={() => refetch()} title={t("common.refresh")} icon={<RefreshCw size={18} />} />
+          </div>
+        }
       />
 
       {loading ? (
