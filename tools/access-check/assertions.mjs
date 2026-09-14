@@ -96,6 +96,15 @@ function summarizeErrors(errors) {
   return errors.map((error) => error?.message ?? JSON.stringify(error)).join("; ");
 }
 
+// A denial the platform intended, as opposed to a call it could not parse.
+// Assertions 12-14 pass only on this: a 400 would prove the probe was
+// malformed, not that the boundary held.
+function isAuthDenial(result) {
+  if (result.outcome === "threw") return /\b(401|403)\b/.test(result.message);
+  if (result.outcome === "graphql-error") return /AUTH_|unauthori[sz]ed|forbidden|not authenticated/i.test(result.message);
+  return false;
+}
+
 function itemsOf(response, listField) {
   return response?.data?.[listField]?.items ?? [];
 }
@@ -160,6 +169,10 @@ async function main() {
   const { blocks: blocksOps } = await signIn(
     process.env.SHOPRETURN_OPS_EMAIL,
     process.env.SHOPRETURN_OPS_PASSWORD
+  );
+  const { blocks: blocksManager } = await signIn(
+    process.env.SHOPRETURN_MANAGER_EMAIL,
+    process.env.SHOPRETURN_MANAGER_PASSWORD
   );
 
   // 1. Customer B reads customer A's ReturnCase by returnCaseItemId.
@@ -605,9 +618,91 @@ async function main() {
     }
   }
 
+  // 12. The timeline is the trust artifact: the permanent record of what the
+  // customer was told and when. If a customer could append to it, it would
+  // stop being the seller's word and be worthless as evidence for either side.
+  {
+    const label = "customerA cannot append to their own return's timeline";
+    const result = await attempt(() =>
+      blocksA.data.collection("ReturnTimeline").create({
+        returnId: returnCaseItemId,
+        customerItemId: customerAItemId,
+        status: "REFUNDED",
+        message: "assertion 12 probe -- a customer must never be able to write what the seller told them",
+        isCustomerVisible: true,
+        authorRole: "customer",
+        at: new Date().toISOString()
+      })
+    );
+    if (isAuthDenial(result)) {
+      record(12, label, true, `denied(${result.message})`);
+    } else if (result.outcome === "ok") {
+      const payload = result.response?.data?.insertReturnTimeline;
+      if (!payload?.itemId || payload.acknowledged === false) {
+        record(12, label, true, `denied(empty) -- data.insertReturnTimeline=${JSON.stringify(payload)}`);
+      } else {
+        // No app identity can delete a timeline row (assertion 8), so this
+        // debris is permanent. Report it; do not try to clean it up.
+        record(12, label, false, `allowed -- customer-authored timeline row created (itemId=${payload.itemId}); it cannot be removed by any app role`);
+      }
+    } else {
+      record(12, label, false, `inconclusive -- not an auth denial, check the probe shape: ${result.message}`);
+    }
+  }
+
+  // 13. Ops cannot see pattern alerts or management decisions. An operator who
+  // sees fraud and rate patterns would pre-judge the case in front of them --
+  // exactly what "ops confirm or correct before it counts" exists to prevent.
+  // The manager control proves the rows exist, so an empty result for ops is a
+  // real denial and not the vacuous pass assertion 5 once was.
+  {
+    const label = "ops cannot read PatternAlert or Decision";
+    const listOf = (client, schema, fields) =>
+      attempt(() => client.data.collection(schema, { fields }).list({ pageNo: 1, pageSize: 5 }));
+
+    const controlAlerts = await listOf(blocksManager, "PatternAlert", ["dimension", "value"]);
+    const controlDecisions = await listOf(blocksManager, "Decision", ["decisionType", "target"]);
+    const controlOk =
+      controlAlerts.outcome === "ok" && itemsOf(controlAlerts.response, "getPatternAlerts").length > 0 &&
+      controlDecisions.outcome === "ok" && itemsOf(controlDecisions.response, "getDecisions").length > 0;
+
+    if (!controlOk) {
+      record(13, label, false, "vacuous -- the manager control could not read rows in both collections, so an empty result for ops would prove nothing");
+    } else {
+      const verdict = (result, listField) => {
+        if (isAuthDenial(result)) return { pass: true, note: `denied(${result.message})` };
+        if (result.outcome === "ok") {
+          const count = itemsOf(result.response, listField).length;
+          return count === 0 ? { pass: true, note: "denied(empty)" } : { pass: false, note: `allowed -- ${count} row(s) visible` };
+        }
+        return { pass: false, note: `inconclusive -- not an auth denial: ${result.message}` };
+      };
+      const alerts = verdict(await listOf(blocksOps, "PatternAlert", ["dimension", "value"]), "getPatternAlerts");
+      const decisions = verdict(await listOf(blocksOps, "Decision", ["decisionType", "target"]), "getDecisions");
+      record(13, label, alerts.pass && decisions.pass, `PatternAlert ${alerts.note}; Decision ${decisions.note}`);
+    }
+  }
+
+  // 14. The manager reads every case and decides none; ops owns the case
+  // decision. Non-destructive by construction: the fixture case is already
+  // REFUNDED, so even a wrongly-allowed write changes no value.
+  {
+    const label = "manager cannot edit a ReturnCase";
+    const result = await attempt(() =>
+      blocksManager.data.collection("ReturnCase").update(returnCaseItemId, { status: "REFUNDED" })
+    );
+    if (isAuthDenial(result)) {
+      record(14, label, true, `denied(${result.message})`);
+    } else if (result.outcome === "ok") {
+      record(14, label, false, `allowed -- updateReturnCase=${JSON.stringify(result.response?.data?.updateReturnCase)}`);
+    } else {
+      record(14, label, false, `inconclusive -- not an auth denial, check the call shape: ${result.message}`);
+    }
+  }
+
   const passing = results.filter(Boolean).length;
-  console.log(`${passing}/11 passing`);
-  process.exit(passing === 11 ? 0 : 1);
+  console.log(`${passing}/${results.length} passing`);
+  process.exit(passing === results.length ? 0 : 1);
 }
 
 main().catch((error) => {
