@@ -223,5 +223,14 @@
   "returns.title": "আমার রিটার্নসমূহ",
   "returns.unknownOrder": "অজানা অর্ডার",
   "returns.unknownProduct": "অজানা পণ্য",
-  "save": "সংরক্ষণ করুন"
+  "save": "সংরক্ষণ করুন",
+  "table.noMatches": "আপনার খোঁজার সাথে কিছু মেলেনি।",
+  "table.next": "পরবর্তী",
+  "table.page": "পৃষ্ঠা {page} / {pages}",
+  "table.perPage": "প্রতি পৃষ্ঠায়",
+  "table.previous": "পূর্ববর্তী",
+  "table.search": "খুঁজুন",
+  "table.searchPlaceholder": "এই তালিকায় খুঁজুন",
+  "table.showing": "{total}টির মধ্যে {start}–{end} দেখানো হচ্ছে",
+  "table.showingFiltered": "{all}টির মধ্যে ফিল্টার করা {total}টির {start}–{end} দেখানো হচ্ছে"
 }

@@ -223,5 +223,14 @@
   "returns.title": "My returns",
   "returns.unknownOrder": "Unknown order",
   "returns.unknownProduct": "Unknown product",
-  "save": "Save"
+  "save": "Save",
+  "table.noMatches": "No rows match your search.",
+  "table.next": "Next",
+  "table.page": "Page {page} of {pages}",
+  "table.perPage": "Per page",
+  "table.previous": "Previous",
+  "table.search": "Search",
+  "table.searchPlaceholder": "Search this list",
+  "table.showing": "Showing {start}–{end} of {total}",
+  "table.showingFiltered": "Showing {start}–{end} of {total} filtered from {all}"
 }
