@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { blocksClient } from "../../lib/blocks/client";
 import { itemsOrThrow } from "../../lib/blocks/readItems";
 import { insertTimelineEntry, updateReturnCaseStatus } from "./opsTimeline";
+import { runPatternWatch } from "../insights/runPatternWatch";
 
 // Field names below are copied verbatim from blocks/data/schemas/ReturnCase.json
 // -- note the asymmetry the spec itself defines: the reason's confirmed
@@ -179,6 +180,14 @@ export function useReviewReturn(itemId?: string) {
         setSubmitStage("update-failed");
         return false;
       }
+
+      // The accept has landed, so re-check the return rates (design spec §1).
+      // Fire-and-forget by design: detection must never delay, block or undo
+      // the case decision ops just made.
+      void runPatternWatch().then((summary) => {
+        if (summary.error || summary.failed.length > 0) console.warn("[pattern-watch]", summary);
+        else if (summary.inserted.length > 0) console.info("[pattern-watch] raised", summary.inserted);
+      });
 
       const notify: PendingNotify = {
         returnId: itemId,
