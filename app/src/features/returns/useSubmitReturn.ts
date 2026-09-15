@@ -7,6 +7,10 @@ import { notifyRole } from "../../lib/blocks/notify";
 // name is "Default" (capital D) -- the README/plan example's "default" does not exist here.
 const STORAGE_CONFIGURATION_NAME = "Default";
 
+// With no parent directory, the upload lands in this module's default
+// directory. Matches the working request captured from the deployed site.
+const STORAGE_MODULE_NAME = 3;
+
 type PresignedUploadResponse = {
   uploadUrl?: string;
   fileId?: string;
@@ -30,7 +34,11 @@ async function uploadPhotos(files: File[]): Promise<UploadOutcome> {
       const upload = (await blocksClient.data.files.presignedUploadUrl({
         name: file.name,
         configurationName: STORAGE_CONFIGURATION_NAME,
-        parentDirectoryId: "root",
+        // Sent as an empty string so the backend resolves the module default.
+        // The SDK drops an empty `parentDirectoryId`, so the wire key is passed
+        // directly; it is copied onto the request body unchanged.
+        ParentDirectoryId: "",
+        moduleName: STORAGE_MODULE_NAME,
         accessModifier: "Private"
       })) as PresignedUploadResponse;
 
