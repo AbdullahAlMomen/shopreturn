@@ -699,6 +699,59 @@ async function main() {
       record(14, label, false, `inconclusive -- not an auth denial, check the call shape: ${result.message}`);
     }
   }
+  // 15. The insert grant is ops-only. A customer creating an alert would put
+  // words in the manager's alert strip. Must be denied, so nothing is created.
+  {
+    const label = "customerA cannot insert a PatternAlert";
+    const result = await attempt(() =>
+      blocksA.data.collection("PatternAlert").create({
+        alertKey: `PROBE:assertion-15:${Date.now()}`,
+        dimension: "SKU",
+        value: "assertion-15-probe",
+        metric: 0,
+        threshold: 30,
+        takaImpact: 0,
+        contributingReturnIds: [],
+        draftExplanation: "assertion 15 probe -- must be denied",
+        raisedAt: new Date().toISOString(),
+        acknowledgedBy: ""
+      })
+    );
+    const created = result.response?.data?.insertPatternAlert?.itemId;
+    if (isAuthDenial(result)) {
+      record(15, label, true, `denied(${result.message})`);
+    } else if (created) {
+      record(15, label, false, `allowed -- PatternAlert created (itemId=${created}); no role can delete it, remove it by hand`);
+    } else {
+      record(15, label, false, `inconclusive -- not an auth denial: ${result.message ?? JSON.stringify(result.response)}`);
+    }
+  }
+
+  // 16. Acknowledging stays manager-only: ops creates alerts but must not be
+  // able to change them. Non-destructive: writes back the value the manager
+  // reads right now, so even a wrongly-allowed write changes nothing.
+  {
+    const label = "ops cannot update a PatternAlert";
+    const current = await attempt(() =>
+      blocksManager.data.collection("PatternAlert", { fields: ["acknowledgedBy"] }).list({ pageNo: 1, pageSize: 50 })
+    );
+    const row = itemsOf(current.response, "getPatternAlerts").find((item) => item.ItemId === fixtureIds.patternAlertItemId);
+    if (!row) {
+      record(16, label, false, "vacuous -- the manager could not read the fixture alert, so the probe would prove nothing");
+    } else {
+      const result = await attempt(() =>
+        blocksOps.data.collection("PatternAlert").update(fixtureIds.patternAlertItemId, { acknowledgedBy: row.acknowledgedBy ?? "" })
+      );
+      if (isAuthDenial(result)) {
+        record(16, label, true, `denied(${result.message})`);
+      } else if (result.outcome === "ok") {
+        record(16, label, false, `allowed -- updatePatternAlert=${JSON.stringify(result.response?.data?.updatePatternAlert)}`);
+      } else {
+        record(16, label, false, `inconclusive -- not an auth denial: ${result.message}`);
+      }
+    }
+  }
+
 
   const passing = results.filter(Boolean).length;
   console.log(`${passing}/${results.length} passing`);
