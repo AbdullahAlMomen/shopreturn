@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { blocksClient } from "../../lib/blocks/client";
+import { notifyRole } from "../../lib/blocks/notify";
 
 // Confirmed live via `blocks storage config list --project Df53833214f2a4243b696b55040b32509
 // --account default --json`: this project has exactly one storage configuration and its
@@ -157,6 +158,14 @@ export function useSubmitReturn() {
         setError("create-failed");
         return undefined;
       }
+
+      // The return exists now; tell ops. Fire-and-forget: a failed ping must
+      // never turn a successful submission into an error for the customer.
+      void notifyRole("ops", "RETURN_SUBMITTED", {
+        returnId: inserted.itemId,
+        orderNumber: input.orderNumber,
+        productName: input.productName ?? ""
+      });
 
       return { itemId: inserted.itemId, photoFailures };
     } catch (caught) {

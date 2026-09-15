@@ -100,7 +100,7 @@ export function AppShell({ activePath, children, onNavigate }: { activePath: str
           ) : null}
           <div className="topbar-spacer" />
           <LanguageSwitcher />
-          <NotificationsMenu />
+          <NotificationsMenu onNavigate={onNavigate} />
           <UserMenu onNavigate={onNavigate} />
         </header>
         <main>{children}</main>
