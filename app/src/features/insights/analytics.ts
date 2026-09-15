@@ -13,6 +13,7 @@ export type OrderRow = {
 };
 
 export type CaseRow = OrderRow & {
+  ItemId?: string;
   status?: string;
   confirmedReason?: string;
   aiReason?: string;
@@ -52,7 +53,7 @@ export type Insights = {
 // UNSPECIFIED bucket -- UNCATEGORISED's product/area/courier counterpart --
 // rather than vanishing, so each facet's totals still add up to the
 // dataset's totals.
-function reasonOf(row: CaseRow): string {
+export function reasonOf(row: CaseRow): string {
   return row.confirmedReason || row.aiReason || "UNCATEGORISED";
 }
 

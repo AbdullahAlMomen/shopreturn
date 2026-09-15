@@ -1,9 +1,7 @@
 import { formatPercent, formatTaka } from "./analytics";
 import type { Facet } from "./analytics";
 import { useT } from "../../lib/i18n/LocalizationProvider";
-
-// The threshold the fixture PatternAlert uses (threshold: 30).
-const BREACH_RATE = 0.3;
+import { BREACH_RATE } from "./thresholds";
 
 export function FacetBars({
   title,
