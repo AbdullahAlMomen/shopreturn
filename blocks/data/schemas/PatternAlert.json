@@ -11,6 +11,7 @@
     { "name": "contributingReturnIds", "type": "String", "isArray": true },
     { "name": "draftExplanation", "type": "String", "description": "Agent-drafted likely cause" },
     { "name": "raisedAt", "type": "DateTime", "description": "Must predate the manager opening the dashboard" },
-    { "name": "acknowledgedBy", "type": "String" }
+    { "name": "acknowledgedBy", "type": "String" },
+    { "name": "alertKey", "type": "String", "isUniqueData": true, "description": "DIMENSION:facetKey:ISO-week, e.g. AREA:Mirpur 11:2026-W38. Unique, so a second insert for the same facet in the same week is rejected by the database." }
   ]
 }

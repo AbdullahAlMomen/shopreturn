@@ -962,6 +962,29 @@
           }
         ]
       }
+    },
+    {
+      "schemaName": "PatternAlert",
+      "policyName": "ops-inserts-pattern-alerts",
+      "policyDescription": "Ops may create PatternAlert rows (Pattern Watch runs in the ops browser on accept) but still cannot read or edit them.",
+      "policyType": 0,
+      "operation": 1,
+      "isAllowPolicy": true,
+      "priority": 20,
+      "fieldNames": [],
+      "ruleGroup": {
+        "logicalOperator": 0,
+        "nestedGroups": [],
+        "rules": [
+          {
+            "leftSource": 0,
+            "leftOperand": "roles",
+            "operator": 0,
+            "rightSource": 2,
+            "staticValue": "ops"
+          }
+        ]
+      }
     }
   ]
 }
