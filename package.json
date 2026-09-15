@@ -7,9 +7,9 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "build": "npm --prefix app ci && npm --prefix app run build",
-    "lint": "npm --prefix app run lint",
-    "test": "npm --prefix app test",
-    "dev": "npm --prefix app run dev"
+    "build": "cd app && npm ci && npm run build",
+    "lint": "cd app && npm run lint",
+    "test": "cd app && npm test",
+    "dev": "cd app && npm run dev"
   }
 }
