@@ -1,0 +1,21 @@
+# Keep secrets and bulk out of the build context. Docker and kaniko do not
+# read .gitignore, so every exclusion has to be repeated here.
+**/.env
+**/.env.*
+!**/.env.example
+**/.cert/
+
+**/node_modules/
+**/dist/
+.git/
+.superpowers/
+blocks-cli/
+docs/
+tools/
+**/coverage/
+**/test-results/
+**/playwright-report/
+**/*.log
+**/*.tsbuildinfo
+**/.vscode/
+**/.idea/
