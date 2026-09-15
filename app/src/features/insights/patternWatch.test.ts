@@ -165,4 +165,13 @@ describe("classifyAlertInsert", () => {
   it("treats an unacknowledged payload as a failure", () => {
     expect(classifyAlertInsert({ data: { insertPatternAlert: { itemId: "a1", acknowledged: false } } })).toBe("failed");
   });
+
+  it("does not treat unrelated errors that together mention alertKey and already exists as a duplicate", () => {
+    expect(classifyAlertInsert({
+      errors: [
+        { message: "A record with the same value for 'value' already exists." },
+        { message: "Field 'alertKey' failed validation." }
+      ]
+    })).toBe("failed");
+  });
 });

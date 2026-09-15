@@ -148,7 +148,12 @@ export function buildAlert(breach: Breach, cases: CaseRow[], now: Date): Pattern
 
 // A uniqueness rejection on alertKey means "already raised this week" and is
 // the expected second-accept outcome, not a failure. The platform reports it
-// as a 200 with a GraphQL errors array and a null payload.
+// as a 200 with a GraphQL errors array and a null payload. The alertKey and
+// already-exists markers must both come from the SAME error message: with
+// several errors present, matching each marker against the array as a whole
+// (e.g. via a combined JSON.stringify) can pair unrelated errors together --
+// a uniqueness failure on some other field plus an unrelated mention of
+// alertKey -- and misclassify a real failure as a harmless duplicate.
 export function classifyAlertInsert(response: unknown): InsertOutcome {
   const r = (response ?? {}) as {
     errors?: unknown;
@@ -156,8 +161,12 @@ export function classifyAlertInsert(response: unknown): InsertOutcome {
   };
   const errors = Array.isArray(r.errors) ? r.errors : [];
   if (errors.length > 0) {
-    const text = JSON.stringify(errors);
-    return text.includes("alertKey") && text.toLowerCase().includes("already exists") ? "duplicate" : "failed";
+    const isAlertKeyDuplicate = errors.some((error) => {
+      if (typeof error !== "object" || error === null) return false;
+      const message = (error as { message?: unknown }).message;
+      return typeof message === "string" && message.includes("alertKey") && message.toLowerCase().includes("already exists");
+    });
+    return isAlertKeyDuplicate ? "duplicate" : "failed";
   }
   const payload = r.data?.insertPatternAlert;
   return payload?.itemId && payload.acknowledged !== false ? "inserted" : "failed";
