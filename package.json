@@ -1,0 +1,15 @@
+{
+  "name": "shopreturn",
+  "version": "1.0.0",
+  "private": true,
+  "description": "ShopReturn - returns management for a Dhaka e-commerce seller, built on SELISE Blocks. The web app lives in app/; this root manifest exists because the Blocks build pipeline installs dependencies from the repository root.",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "npm --prefix app ci && npm --prefix app run build",
+    "lint": "npm --prefix app run lint",
+    "test": "npm --prefix app test",
+    "dev": "npm --prefix app run dev"
+  }
+}
