@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildNotifyRequest, notifyFailed } from "./notify";
+import { buildNotifyRequest, notifyFailed } from "./notifyRequest";
 
 describe("buildNotifyRequest", () => {
   it("fills the five fields the notifier requires, verbatim", () => {
