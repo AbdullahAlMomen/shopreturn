@@ -44,6 +44,10 @@ export function useNotifications(pollMs = 30_000) {
   const markRead = useCallback(async (id: string) => {
     try {
       await blocksClient.notifier.markNotificationAsRead({ id });
+    } catch (caught) {
+      // Callers fire this with `void`; a failed mark must not become an
+      // unhandled rejection. The refresh below shows the true read state.
+      console.warn("[notifications] mark as read failed", caught);
     } finally {
       await refresh();
     }
@@ -52,6 +56,8 @@ export function useNotifications(pollMs = 30_000) {
   const markAllRead = useCallback(async () => {
     try {
       await blocksClient.notifier.markAllNotificationAsRead();
+    } catch (caught) {
+      console.warn("[notifications] mark all as read failed", caught);
     } finally {
       await refresh();
     }

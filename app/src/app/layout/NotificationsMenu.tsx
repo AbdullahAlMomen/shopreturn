@@ -13,7 +13,7 @@ import { useNotifications } from "./useNotifications";
 
 export function NotificationsMenu({ onNavigate }: { onNavigate: (path: string) => void }) {
   const { t } = useT();
-  const { items, unread, error, markRead, markAllRead, refresh } = useNotifications();
+  const { items, unread, error, loading, markRead, markAllRead, refresh } = useNotifications();
   const badge = unread > 9 ? "9+" : String(unread);
   const triggerLabel = unread > 0
     ? `${t("notifications.title")} (${unread} ${t("notifications.unread")})`
@@ -38,7 +38,9 @@ export function NotificationsMenu({ onNavigate }: { onNavigate: (path: string) =
         {error ? (
           // A failed read must never be shown as "all caught up".
           <p className="notif-error" role="alert">{t("notifications.loadError")}</p>
-        ) : items.length === 0 ? (
+        ) : loading ? null : items.length === 0 ? (
+          // Until the first read lands there is nothing true to say, so the
+          // empty state waits for it rather than claiming "all caught up".
           <div className="notif-empty">
             <CheckCheck size={22} aria-hidden="true" />
             <p>{t("notifications.empty")}</p>
