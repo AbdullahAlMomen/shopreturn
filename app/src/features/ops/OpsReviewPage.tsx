@@ -140,10 +140,18 @@ function TimelineHistory({ timeline, t }: { timeline: TimelineEntry[]; t: Transl
   );
 }
 
+// Keyed by case id. The notifications bell can jump from one case straight to
+// another without leaving this route, and every piece of per-case state -- the
+// loaded case, ops' edits, which stages were already seeded -- must start fresh
+// for the new case rather than carry the previous customer's values across.
 export function OpsReviewPage() {
+  const itemId = currentReviewId();
+  return <OpsReviewCase key={itemId ?? ""} itemId={itemId} />;
+}
+
+function OpsReviewCase({ itemId }: { itemId?: string }) {
   const { t } = useT();
   const { hasRole, isLoading: rolesLoading, roles } = useRoles();
-  const itemId = currentReviewId();
   const {
     returnCase, timeline, refund, loading, loadError,
     accept, reject, markReceived, startRefund, retryNotify,
@@ -190,7 +198,10 @@ export function OpsReviewPage() {
   // established in Task 2.
   const seededStagesRef = useRef<Set<string>>(new Set());
   useEffect(() => {
-    const status = returnCase?.status;
+    // Nothing to seed from until the case has loaded; marking a stage seeded
+    // now would lock in defaults and hide the AI's proposal once it arrives.
+    if (!returnCase) return;
+    const status = returnCase.status;
     const stageKey = status || "SUBMITTED";
     if (seededStagesRef.current.has(stageKey)) return;
     seededStagesRef.current.add(stageKey);
