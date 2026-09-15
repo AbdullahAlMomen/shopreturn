@@ -210,7 +210,7 @@ export const defaultDictionary = {
   "insights.alerts.empty": "No pattern alerts raised.",
   "insights.alerts.loadError": "Could not load pattern alerts.",
   "insights.alerts.sentence": "{value} return rate is {metric}%, over the {threshold}% threshold, costing {taka}.",
-  "insights.alerts.draftLabel": "Agent's draft explanation, not yet confirmed",
+  "insights.alerts.draftLabel": "Drafted from the return data, not yet confirmed",
   "insights.alerts.raisedAt": "Raised {when}",
   "insights.alerts.acknowledge": "Acknowledge",
   "insights.alerts.acknowledgedBy": "Acknowledged by {who}",
@@ -235,7 +235,15 @@ export const defaultDictionary = {
   "insights.decisions.type.OTHER": "other",
   "notFound.title": "404",
   "notFound.message": "This page does not exist.",
-  "notFound.home": "Back home"
+  "notFound.home": "Back home",
+  "notifications.title": "Notifications",
+  "notifications.empty": "You're all caught up.",
+  "notifications.loadError": "Could not load notifications.",
+  "notifications.markAllRead": "Mark all read",
+  "notifications.unread": "unread",
+  "notifications.returnSubmitted": "New return for order {orderNumber}",
+  "notifications.patternAlert": "{value} return rate is {metric}%",
+  "notifications.generic": "New notification"
 } as const;
 
 export type TranslationKey = keyof typeof defaultDictionary;
